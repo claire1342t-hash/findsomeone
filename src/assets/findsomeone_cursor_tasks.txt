@@ -1,0 +1,120 @@
+FINDSOMEONE — HOMEPAGE REDESIGN TASK LIST
+For Cursor | React
+
+========================================
+OVERVIEW
+========================================
+
+Redesign the homepage to feel like an illustrated truck (inspired by hand-drawn indie illustration style).
+All site features are represented as objects inside/around the truck.
+The page has two sections:
+1. HERO — full-screen illustrated truck scene
+2. BELOW THE FOLD — feature details (existing content, keep as-is for now)
+
+========================================
+DESIGN RULES (apply to all tasks)
+========================================
+
+- Visual style: hand-drawn, indie illustration, warm — reference: RV There Yet game, Nissan truck illustration
+- Background color: warm off-white (e.g. #FAF7F2)
+- All truck objects share the same hover behavior:
+  → Object lifts up (translateY -6px) + drop shadow increases
+  → A speech bubble appears above the object with the label
+  → Cursor changes to pointer
+- No forced onboarding. No modals on load.
+- Mobile responsiveness is NOT required for this task (desktop only for now)
+
+========================================
+TASK 1 — REPLACE HERO SECTION
+========================================
+
+Goal: Replace the current hero with a full-screen illustrated truck scene.
+
+Acceptance criteria:
+- Remove existing hero content (headline, buttons, notification card)
+- Full-screen section (100vh) with background color #FAF7F2
+- Large centered headline: "Wanna find someone?" in a bold, slightly imperfect font (suggest: Architects Daughter or Permanent Marker from Google Fonts)
+- Small subtitle below: "Who are you missing?" in a lighter weight
+- Truck illustration centered in the lower half of the hero (use the uploaded Nissan truck image as placeholder, or an SVG placeholder truck shape)
+- Truck should be large enough to clearly see objects inside the truck bed
+
+========================================
+TASK 2 — ADD INTERACTIVE OBJECTS TO TRUCK
+========================================
+
+Goal: Place 5 clickable objects inside/around the truck illustration.
+
+Each object:
+- Is absolutely positioned over the truck image
+- Has hover behavior: lifts up + speech bubble appears with label
+- Is clickable (routes to its page or shows placeholder alert for now)
+
+Objects and their labels:
+1. Map icon → label: "Explore & Post" → href: /map
+2. Envelope icon → label: "Chat" → href: /chat
+3. Wrench icon → label: "Tools" → href: /tools
+4. Phone icon → label: "Contact Us" → href: /contact
+5. Person figure (standing beside driver door) → label: "Profile" → href: /profile
+   - Person has TWO states: default pose and "cheer" pose (both hands up)
+   - On hover: switch to cheer pose image
+   - Use two separate PNG/SVG images for the two states (no animation needed)
+
+Acceptance criteria:
+- All 5 objects visible on the truck
+- Hover state works for all objects (lift + shadow + speech bubble)
+- Person correctly switches between two images on hover
+- Clicking any object navigates to the correct route (placeholder page is fine)
+
+========================================
+TASK 3 — FLOATING MANUAL BUTTON (bottom-right)
+========================================
+
+Goal: Fixed button in bottom-right corner that opens a manual/guide.
+
+Acceptance criteria:
+- Fixed position: bottom: 32px, right: 32px
+- Appearance: small illustrated notebook/manual icon with label "?" or a book drawing
+- On click: opens a modal overlay (the "manual")
+- Manual content (for now, placeholder text is fine — real content in Task 4)
+- Modal has a close button (X) in top-right corner
+- Modal does NOT appear automatically on page load
+
+========================================
+TASK 4 — MANUAL CONTENT (inside the modal)
+========================================
+
+Goal: Fill the manual modal with RV-There-Yet-style instructional content.
+
+Acceptance criteria:
+- Manual has 3 "pages" navigable with Prev / Next buttons
+- Page 1: How to post (Poster flow — illustrated with simple icons, minimal text)
+  → Pick a location on the map → Write what you saw → Choose your reason → Set verify questions → Post goes live
+- Page 2: How to get found (Found Person flow)
+  → Subscribe to your usual spots → Get notified → Read the post → Answer questions → Chat opens
+- Page 3: Rules & contact
+  → 3-4 short safety rules in plain language
+  → "Got feedback?" + contact email link
+- Style: hand-drawn feel, simple line icons, warm paper background inside modal (#FDF6E3)
+- No forced reading — user opens it by choice
+
+========================================
+TASK 5 — KEEP BELOW-THE-FOLD CONTENT
+========================================
+
+Goal: Keep existing feature explanation sections below the hero, but restyle to match new visual tone.
+
+Acceptance criteria:
+- Existing sections (Core MVP Features, User Flows, Safety, Tech Stack) remain intact
+- Update background colors and font to match new warm palette
+- Remove the top navbar items that duplicate what's now in the truck (MVP Features, User Flows, Safety, Tech Stack, Get Started)
+- Navbar should only show: Findsomeone logo (left) + Profile icon (right)
+- Light/Dark/System toggle can be removed for now
+
+========================================
+TASK ORDER (suggested)
+========================================
+
+Do in this order:
+1 → 2 → 3 → 5 → 4
+
+Task 4 (manual content) is lowest priority and can be done last with placeholder text.

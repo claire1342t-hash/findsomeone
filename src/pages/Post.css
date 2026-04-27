@@ -1,0 +1,209 @@
+.post-page {
+  min-height: 100vh;
+  padding: 24px 24px 56px;
+  background: var(--bg-main);
+}
+
+.post-page-title {
+  margin: 0;
+  text-align: center;
+  font-family: "Noto Serif TC", serif;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 800;
+}
+
+.post-main {
+  width: min(720px, 100%);
+  margin: 28px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.post-section {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 22px 22px 20px;
+}
+
+.post-section h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-family: "Noto Serif TC", serif;
+  font-weight: 700;
+}
+
+.post-section-intro {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.post-map-wrap {
+  height: 360px;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #e8e8ea;
+}
+
+.post-map-wrap .leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: "Noto Sans TC", sans-serif;
+}
+
+.post-coords {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: #3a3a3c;
+  line-height: 1.5;
+}
+
+.post-coords strong {
+  font-weight: 700;
+}
+
+.post-label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.post-field {
+  margin-bottom: 18px;
+}
+
+.post-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.post-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: #fafafa;
+  resize: vertical;
+}
+
+.post-textarea:focus {
+  outline: 2px solid #c9c9c9;
+  outline-offset: 1px;
+}
+
+.post-radio-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-radio-card {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  background: #fafafa;
+}
+
+.post-radio-card:hover {
+  border-color: #b8b8b8;
+  box-shadow: var(--shadow-soft);
+}
+
+.post-radio-card:has(input:checked) {
+  border-color: #252526;
+  background: #f0f0f0;
+  box-shadow: var(--shadow-soft);
+}
+
+.post-radio-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.post-radio-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.post-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 15px;
+  background: #fafafa;
+}
+
+.post-input:focus {
+  outline: 2px solid #c9c9c9;
+  outline-offset: 1px;
+}
+
+.post-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.post-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.post-submit {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 36px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: "Noto Sans TC", sans-serif;
+  background: #1f1f21;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.post-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.post-submit:active {
+  transform: translateY(0);
+}
+
+.post-feedback {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 15px;
+  color: #2d6a4f;
+}
+
+@media (max-width: 620px) {
+  .post-page {
+    padding: 16px 14px 40px;
+  }
+
+  .post-map-wrap {
+    height: 280px;
+  }
+}
