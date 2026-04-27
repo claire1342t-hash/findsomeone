@@ -61,7 +61,7 @@ a {
 }
 
 .top-nav-link {
-  text-transform: lowercase;
+  text-transform: capitalize;
   font-size: 15px;
   color: #5f615f;
   padding: 8px 14px;
@@ -69,8 +69,7 @@ a {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-.top-nav-link:hover,
-.top-nav-link:first-child {
+.top-nav-link:hover {
   background: var(--card);
   color: #202120;
 }

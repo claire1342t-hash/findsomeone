@@ -19,8 +19,8 @@ function App() {
       id: "map",
       title: "1.在地圖標記地點",
       description: "選擇你們相遇的確切位置",
-      defaultImage: "/src/assets/illustrations/map-1.png",
-      hoverImage: "/src/assets/illustrations/map-2.png",
+      defaultImage: mapDefault,
+      hoverImage: mapHover,
     },
     {
       id: "write",
