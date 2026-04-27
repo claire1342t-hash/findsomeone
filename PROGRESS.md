@@ -21,5 +21,5 @@
 - 通知系統（SendGrid）
 
 ## 🔗 連結
-- Vercel：（貼上你的網址）
+- Vercel：https://findsomeone.vercel.app/
 - GitHub：https://github.com/claire1342t-hash/findsomeone
