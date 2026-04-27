@@ -5,6 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CustomCursor } from "../components/CustomCursor.jsx";
 import "./Post.css";
+import profileImg from "../assets/illustrations/profile.png";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -67,7 +68,7 @@ function Post() {
           ))}
         </nav>
         <Link className="avatar-button" to="/profile" aria-label="Login or profile">
-          <img src="/src/assets/illustrations/profile.png" alt="profile" />
+          <img src={profileImg} alt="profile" />
         </Link>
       </header>
 

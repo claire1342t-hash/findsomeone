@@ -1,5 +1,16 @@
 import { Link } from "react-router-dom";
 import { CustomCursor } from "./components/CustomCursor.jsx";
+import mapDefault from "./assets/illustrations/map-1.png";
+import mapHover from "./assets/illustrations/map-2.png";
+import boyDefault from "./assets/illustrations/boy-1.png";
+import boyHover from "./assets/illustrations/boy-2.png";
+import phoneDefault from "./assets/illustrations/phone-1.png";
+import phoneHover from "./assets/illustrations/phone-2.png";
+import chatDefault from "./assets/illustrations/Chat-1.png";
+import chatHover from "./assets/illustrations/Chat-2.png";
+import profileImg from "./assets/illustrations/profile.png";
+import buttonDefault from "./assets/illustrations/button_1.png";
+import buttonActive from "./assets/illustrations/button_2.png";
 
 function App() {
   const navItems = ["home", "about", "map", "chat"];
@@ -15,22 +26,22 @@ function App() {
       id: "write",
       title: "2.寫下你看到的他/她",
       description: "描述外貌、當下的情境",
-      defaultImage: "/src/assets/illustrations/boy-1.png",
-      hoverImage: "/src/assets/illustrations/boy-2.png",
+      defaultImage: boyDefault,
+      hoverImage: boyHover,
     },
     {
       id: "subscribe",
       title: "3.訂閱常去的地方",
       description: "有新貼文時我們會通知你",
-      defaultImage: "/src/assets/illustrations/phone-1.png",
-      hoverImage: "/src/assets/illustrations/phone-2.png",
+      defaultImage: phoneDefault,
+      hoverImage: phoneHover,
     },
     {
       id: "chat",
       title: "4.通過驗證才能開聊",
       description: "保護雙方隱私與安全",
-      defaultImage: "/src/assets/illustrations/Chat-1.png",
-      hoverImage: "/src/assets/illustrations/Chat-2.png",
+      defaultImage: chatDefault,
+      hoverImage: chatHover,
     },
   ];
   return (
@@ -47,7 +58,7 @@ function App() {
           ))}
         </nav>
         <Link className="avatar-button" to="/profile" aria-label="Login or profile">
-          <img src="/src/assets/illustrations/profile.png" alt="profile" />
+          <img src={profileImg} alt="profile" />
         </Link>
       </header>
 
@@ -62,12 +73,12 @@ function App() {
           <Link className="hero-image-button" to="/post" aria-label="發布尋找">
             <img
               className="hero-button-image default"
-              src="/src/assets/illustrations/button_1.png"
+              src={buttonDefault}
               alt="發布尋找"
             />
             <img
               className="hero-button-image active"
-              src="/src/assets/illustrations/button_2.png"
+              src={buttonActive}
               alt="發布尋找 active"
             />
           </Link>
