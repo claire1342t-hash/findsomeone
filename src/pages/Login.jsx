@@ -60,8 +60,12 @@ function Login() {
       await signInWithPopup(auth, googleProvider);
       navigate("/profile", { replace: true });
     } catch (e) {
-      const msg = friendlyAuthError(e, t);
-      setError(msg === null ? "" : msg);
+      console.error("Login error:", e?.code, e?.message);
+      if (e?.code === "auth/popup-closed-by-user") {
+        setError("");
+      } else {
+        setError(e?.message || String(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -81,8 +85,8 @@ function Login() {
       }
       navigate("/profile", { replace: true });
     } catch (err) {
-      const msg = friendlyAuthError(err, t);
-      setError(msg === null ? "" : msg);
+      console.error("Login error:", err?.code, err?.message);
+      setError(err?.message || String(err));
     } finally {
       setBusy(false);
     }

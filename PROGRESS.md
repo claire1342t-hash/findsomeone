@@ -1,11 +1,13 @@
 # Findsomeone — 開發進度
 
-## ✅ 已完成
+## Day 1 (2026-04-27)
 - 環境設定：agency-agents 安裝至 .cursor/rules/（UX Architect、UI Designer、Senior Developer、Senior PM）
 - Senior Developer stack 從 Laravel 改為 React
 - Homepage：Navbar、Hero 區塊、四個功能介紹卡片、復古插圖風格、思源字體
 - Post 頁面：Leaflet 地圖選點、描述表單、動機選擇卡片、驗證問題、發布按鈕
 - 部署至 Vercel，修正圖片路徑問題
+
+### Day 2 (2026-04-28)
 - Footer 版權聲明：Copyright © 2026 Findsomeone. All rights reserved.
 - Navbar 語言切換（中文 / English / 日本語）
 - Firebase 串接：Auth（Google 登入 + Email/Password）+ Firestore 資料庫
@@ -18,9 +20,12 @@
 - 地圖頁面：cluster 聚合、自訂 ping.png 圖釘、Bottom Sheet、左右分割細節視圖
 
 ## 🔧 待修正
-- 動機卡片液體動畫效果
-- Navbar active 狀態（移除框框）
-- Hero 按鈕換回自製插圖按鈕
+Profile icon — 登入後換成 Google 帳號照片，或建立隨機頭像資料庫
+「我就是那個人」後續流程 — 驗證問題頁面（/verify/:postId）
+發文時間格式 — 只顯示日期，拿掉時間和秒數
+Ping icon — 太小太不明顯，需要調大或換設計
+訂閱常去地點 — 功能要有實際意義，連結到通知系統
+Notification 系統 — 站內通知中心或 Email 通知
 
 ## 📋 待開發
 - 驗證問題流程（/verify/:postId）
