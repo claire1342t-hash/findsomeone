@@ -32,6 +32,16 @@ a {
   padding: 24px 24px 48px;
 }
 
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-shell > main {
+  flex: 1 0 auto;
+}
+
 .top-nav {
   width: min(1080px, 100%);
   margin: 0 auto;
@@ -74,8 +84,59 @@ a {
   color: #202120;
 }
 
-.avatar-button {
+.top-nav-right {
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lang-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #8a8c8a;
+}
+
+.lang-switcher__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-switcher__sep {
+  user-select: none;
+  margin: 0 1px;
+  opacity: 0.45;
+  color: #a8aaa8;
+}
+
+.lang-switcher__btn {
+  margin: 0;
+  padding: 2px 3px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  cursor: none;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.lang-switcher__btn:hover {
+  color: #5f615f;
+}
+
+.lang-switcher__btn.is-active {
+  color: #3d3f3d;
+  font-weight: 500;
+}
+
+.avatar-button {
+  flex-shrink: 0;
   width: 36px;
   height: 36px;
   border: 1px solid var(--line);
@@ -90,6 +151,21 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.app-footer {
+  width: min(1080px, 100%);
+  margin: 28px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+  margin-top: auto;
+}
+
+.app-footer__copy {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a8c8a;
 }
 
 .custom-cursor {
@@ -134,14 +210,6 @@ a {
   gap: 22px;
   align-items: center;
   box-shadow: var(--shadow-soft);
-}
-
-.hero-label {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  font-weight: 700;
 }
 
 .hero-copy h1 {
@@ -261,8 +329,14 @@ a {
   }
 
   .brand,
-  .avatar-button {
+  .top-nav-right {
     justify-self: center;
+  }
+
+  .top-nav-right {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .hero-section {

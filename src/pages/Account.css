@@ -1,0 +1,375 @@
+.account-page .account-main {
+  width: min(520px, 100%);
+  margin: 28px auto 0;
+  padding-bottom: 8px;
+}
+
+.account-title {
+  margin: 0 0 18px;
+  text-align: center;
+  font-family: "Noto Serif TC", serif;
+  font-size: clamp(26px, 4vw, 32px);
+  font-weight: 800;
+}
+
+.account-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 26px 24px 22px;
+}
+
+.account-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: "Noto Sans TC", sans-serif;
+  cursor: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.account-btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.account-btn--google {
+  background: #fff;
+  border-color: #dadada;
+  color: #2b2b2b;
+}
+
+.account-btn--google:hover {
+  background: #f7f7f7;
+  border-color: #c8c8c8;
+}
+
+.account-btn--primary {
+  background: #1f1f21;
+  color: #fff;
+  border-color: #1f1f21;
+  margin-top: 6px;
+}
+
+.account-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.account-btn--ghost {
+  width: auto;
+  background: #f2f2f2;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.account-btn--outline {
+  width: auto;
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.account-btn--outline:hover {
+  background: #fafafa;
+}
+
+.account-divider {
+  margin: 20px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #9a9c9a;
+  position: relative;
+}
+
+.account-divider span {
+  background: var(--card);
+  padding: 0 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.account-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e8e8e8;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.account-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 15px;
+  background: #fafafa;
+  color: var(--ink);
+}
+
+.account-input:focus {
+  outline: 2px solid #c9c9c9;
+  outline-offset: 1px;
+}
+
+.account-error {
+  margin: 0;
+  font-size: 13px;
+  color: #9b2335;
+  line-height: 1.45;
+}
+
+.account-switch {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.account-link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: #2e4e9d;
+  cursor: none;
+  text-decoration: underline;
+}
+
+.account-back {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.account-back a {
+  color: var(--muted);
+}
+
+.account-back a:hover {
+  color: var(--ink);
+}
+
+.account-muted {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.account-section {
+  margin-top: 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 22px 22px 20px;
+}
+
+.account-section-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-family: "Noto Serif TC", serif;
+  font-weight: 700;
+}
+
+.account-section-intro {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.profile-hero {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 22px 22px 20px;
+}
+
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.profile-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  text-align: left;
+  margin: 0 0 6px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+
+.profile-email {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-location-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .profile-location-add {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .profile-location-add .account-input {
+    flex: 1;
+  }
+
+  .profile-location-add .account-btn {
+    width: auto;
+    flex-shrink: 0;
+    align-self: center;
+  }
+}
+
+.profile-location-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-location-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafafa;
+  font-size: 15px;
+}
+
+.account-icon-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.account-icon-btn:hover {
+  color: #9b2335;
+  background: #f5f5f5;
+}
+
+.profile-post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-post-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fafafa;
+}
+
+.profile-post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.profile-post-motivation {
+  font-weight: 600;
+  color: #4a4a4a;
+}
+
+.profile-post-snippet {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.profile-post-coords {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.post-auth-banner {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f7f7f7;
+  font-size: 14px;
+  color: #454545;
+  text-align: center;
+}
+
+.post-auth-banner a {
+  color: #2e4e9d;
+  font-weight: 600;
+  margin-left: 6px;
+}

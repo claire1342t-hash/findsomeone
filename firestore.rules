@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Private ownership row: real Firebase uid lives only here (authorUid), never on posts.
+    // claimToken must match the sibling posts/{postId} doc (set in the same batch).
+    match /users/{userId}/ownedPosts/{postId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /posts/{postId} {
+      function ownedPostsLink() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId));
+      }
+
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && !(request.resource.data.keys().hasAll(["uid"]))
+        && request.resource.data.keys().hasAll([
+          "authorPublicId",
+          "claimToken",
+          "location",
+          "locationDescription",
+          "description",
+          "motivation",
+          "questions",
+          "createdAt",
+        ])
+        && request.resource.data.claimToken == ownedPostsLink().data.claimToken
+        && ownedPostsLink().data.authorUid == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+        && resource.data.claimToken == ownedPostsLink().data.claimToken
+        && ownedPostsLink().data.authorUid == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,258 @@
+.map-page {
+  min-height: 100vh;
+  background: var(--bg-main);
+}
+
+.map-page .top-nav {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 550;
+  width: min(1080px, calc(100% - 24px));
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(244, 244, 244, 0.9);
+  backdrop-filter: blur(6px);
+  border: 1px solid #dedede;
+}
+
+.map-page__main {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.map-canvas {
+  height: 100%;
+  width: 100%;
+}
+
+.map-cluster-badge {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  background: rgba(46, 78, 157, 0.86);
+  color: #fff;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 20px rgba(46, 78, 157, 0.28);
+}
+
+.map-cluster-badge span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.map-sheet {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  top: 84px;
+  z-index: 500;
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+  max-height: none;
+  transform: translateY(calc(100% + 24px));
+  transition: transform 0.28s ease;
+  pointer-events: none;
+}
+
+.map-sheet.is-open {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.map-sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  font-size: 24px;
+  color: #646464;
+  line-height: 1;
+  cursor: none;
+  z-index: 2;
+}
+
+.map-sheet__left {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  padding: 16px 16px 18px;
+  background: rgba(247, 247, 247, 0.97);
+  border: 1px solid #dbdbdb;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
+}
+
+.map-sheet__hint {
+  margin: 0 30px 10px 0;
+  color: #6c6d6c;
+  font-size: 13px;
+}
+
+.map-sheet__empty {
+  margin: 0;
+  color: #7e7f7e;
+  font-size: 14px;
+}
+
+.map-sheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-post-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #dfdfdf;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.map-post-card:hover {
+  border-color: #bcbcbc;
+  transform: translateY(-1px);
+}
+
+.map-post-card.is-active {
+  border-color: #252526;
+  background: #f2f2f2;
+}
+
+.map-post-card__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #222;
+}
+
+.map-post-card__story {
+  margin: 6px 0 0;
+  color: #6f7170;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.map-post-card__meta {
+  margin: 8px 0 0;
+  color: #787b78;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.map-sheet__right {
+  width: 0;
+  opacity: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.28s ease, opacity 0.2s ease;
+  background: rgba(247, 247, 247, 0.97);
+  border: 1px solid #dbdbdb;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
+}
+
+.map-sheet.is-split .map-sheet__left {
+  width: calc(50% - 6px);
+}
+
+.map-sheet.is-split .map-sheet__right {
+  width: calc(50% - 6px);
+  opacity: 1;
+  overflow: auto;
+  padding: 18px 20px 22px;
+}
+
+.map-detail__title {
+  margin: 0 0 10px;
+  font-family: "Noto Serif TC", serif;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.map-detail__text {
+  margin: 0 0 10px;
+  color: #444645;
+  line-height: 1.58;
+  font-size: 15px;
+}
+
+.map-detail__tags {
+  margin: 14px 0 10px;
+}
+
+.map-detail__tag {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d7d7d7;
+  background: #f2f2f2;
+  font-size: 13px;
+}
+
+.map-detail__sub {
+  margin: 6px 0;
+  color: #636563;
+  font-size: 14px;
+}
+
+.map-detail__cta {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  min-height: 48px;
+  padding: 0 26px;
+  background: #1f1f21;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .map-page .top-nav {
+    position: fixed;
+    border-radius: 20px;
+  }
+
+  .map-sheet {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    top: 86px;
+    gap: 8px;
+  }
+
+  .map-sheet.is-split {
+    flex-direction: column;
+  }
+
+  .map-sheet.is-split .map-sheet__left,
+  .map-sheet.is-split .map-sheet__right {
+    width: 100%;
+  }
+
+  .map-sheet.is-split .map-sheet__right {
+    width: 100%;
+  }
+}

@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import { CustomCursor } from "./components/CustomCursor.jsx";
+import { SiteHeader } from "./components/SiteHeader.jsx";
+import { Footer } from "./components/Footer.jsx";
+import { useLanguage } from "./context/LanguageContext.jsx";
 import mapDefault from "./assets/illustrations/map-1.png";
 import mapHover from "./assets/illustrations/map-2.png";
 import boyDefault from "./assets/illustrations/boy-1.png";
@@ -8,82 +11,35 @@ import phoneDefault from "./assets/illustrations/phone-1.png";
 import phoneHover from "./assets/illustrations/phone-2.png";
 import chatDefault from "./assets/illustrations/Chat-1.png";
 import chatHover from "./assets/illustrations/Chat-2.png";
-import profileImg from "./assets/illustrations/profile.png";
 import buttonDefault from "./assets/illustrations/button_1.png";
 import buttonActive from "./assets/illustrations/button_2.png";
 
 function App() {
-  const navItems = ["home", "about", "map", "chat"];
+  const { t } = useLanguage();
   const featureCards = [
-    {
-      id: "map",
-      title: "1.在地圖標記地點",
-      description: "選擇你們相遇的確切位置",
-      defaultImage: mapDefault,
-      hoverImage: mapHover,
-    },
-    {
-      id: "write",
-      title: "2.寫下你看到的他/她",
-      description: "描述外貌、當下的情境",
-      defaultImage: boyDefault,
-      hoverImage: boyHover,
-    },
-    {
-      id: "subscribe",
-      title: "3.訂閱常去的地方",
-      description: "有新貼文時我們會通知你",
-      defaultImage: phoneDefault,
-      hoverImage: phoneHover,
-    },
-    {
-      id: "chat",
-      title: "4.通過驗證才能開聊",
-      description: "保護雙方隱私與安全",
-      defaultImage: chatDefault,
-      hoverImage: chatHover,
-    },
+    { id: "map", titleKey: "feature.map.title", descKey: "feature.map.desc", defaultImage: mapDefault, hoverImage: mapHover },
+    { id: "write", titleKey: "feature.write.title", descKey: "feature.write.desc", defaultImage: boyDefault, hoverImage: boyHover },
+    { id: "subscribe", titleKey: "feature.sub.title", descKey: "feature.sub.desc", defaultImage: phoneDefault, hoverImage: phoneHover },
+    { id: "chat", titleKey: "feature.chat.title", descKey: "feature.chat.desc", defaultImage: chatDefault, hoverImage: chatHover },
   ];
   return (
-    <div className="home-page">
-      <header className="top-nav">
-        <Link className="brand" to="/">
-          Findsomeone
-        </Link>
-        <nav className="top-nav-center" aria-label="Main navigation">
-          {navItems.map((item) => (
-            <Link key={item} className="top-nav-link" to={item === "home" ? "/" : `/${item}`}>
-              {item}
-            </Link>
-          ))}
-        </nav>
-        <Link className="avatar-button" to="/profile" aria-label="Login or profile">
-          <img src={profileImg} alt="profile" />
-        </Link>
-      </header>
-
+    <div className="home-page app-shell">
+      <SiteHeader />
       <main className="home-main">
         <section className="hero-section">
           <div className="hero-copy">
-            <p className="hero-label">HOMEPAGE</p>
-            <h1>跟某人錯過？</h1>
-            <p className="hero-subtext">把那個瞬間寫下來，也許他/她正在等你。</p>
+            <h1>{t("hero.h1")}</h1>
+            <p className="hero-subtext">{t("hero.sub")}</p>
           </div>
-
-          <Link className="hero-image-button" to="/post" aria-label="發布尋找">
-            <img
-              className="hero-button-image default"
-              src={buttonDefault}
-              alt="發布尋找"
-            />
+          <Link className="hero-image-button" to="/post" aria-label={t("hero.postCta")}>
+            <img className="hero-button-image default" src={buttonDefault} alt={t("hero.postCta")} />
             <img
               className="hero-button-image active"
               src={buttonActive}
-              alt="發布尋找 active"
+              alt={`${t("hero.postCta")} (active)`}
             />
           </Link>
         </section>
-
         <section className="feature-grid" aria-label="Feature introduction">
           {featureCards.map((card) => (
             <article className="feature-card feature-card--illustration" key={card.id}>
@@ -101,15 +57,15 @@ function App() {
                   aria-hidden="true"
                 />
               </div>
-              <h2>{card.title}</h2>
-              <p>{card.description}</p>
+              <h2>{t(card.titleKey)}</h2>
+              <p>{t(card.descKey)}</p>
             </article>
           ))}
         </section>
       </main>
+      <Footer />
       <CustomCursor />
     </div>
   );
 }
-
-export default App
+export default App;
