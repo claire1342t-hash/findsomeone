@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  signInWithRedirect,
+  updateProfile,
+} from "firebase/auth";
 import { auth } from "../firebase.js";
 import { CustomCursor } from "../components/CustomCursor.jsx";
 import { SiteHeader } from "../components/SiteHeader.jsx";
@@ -53,21 +60,36 @@ function Login() {
     }
   }, [loading, user, navigate]);
 
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        await getRedirectResult(auth);
+      } catch (error) {
+        if (!alive) return;
+        const msg = friendlyAuthError(error, t);
+        setError(msg === null ? "" : msg);
+      } finally {
+        if (alive) {
+          setBusy(false);
+        }
+      }
+    };
+    run();
+    return () => {
+      alive = false;
+    };
+  }, [t]);
+
   const handleGoogle = async () => {
     setError("");
     setBusy(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      navigate("/profile", { replace: true });
+      await signInWithRedirect(auth, googleProvider);
     } catch (e) {
-      console.error("Login error:", e?.code, e?.message);
-      if (e?.code === "auth/popup-closed-by-user") {
-        setError("");
-      } else {
-        setError(e?.message || String(e));
-      }
-    } finally {
       setBusy(false);
+      const msg = friendlyAuthError(e, t);
+      setError(msg === null ? "" : msg);
     }
   };
 
@@ -85,8 +107,8 @@ function Login() {
       }
       navigate("/profile", { replace: true });
     } catch (err) {
-      console.error("Login error:", err?.code, err?.message);
-      setError(err?.message || String(err));
+      const msg = friendlyAuthError(err, t);
+      setError(msg === null ? "" : msg);
     } finally {
       setBusy(false);
     }
