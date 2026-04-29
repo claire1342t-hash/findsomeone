@@ -264,6 +264,45 @@
   gap: 8px;
 }
 
+.profile-notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-notification-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: auto;
+}
+
+.profile-notification-item.is-unread {
+  background: #f2f6ff;
+}
+
+.profile-notification-message {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.profile-notification-time {
+  color: var(--muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
 .profile-location-item {
   display: flex;
   align-items: center;

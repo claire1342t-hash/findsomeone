@@ -34,6 +34,26 @@ function createdAtIso(value) {
   }
 }
 
+function formatNotificationRelative(value, language) {
+  if (!value?.toDate) return "—";
+  const now = Date.now();
+  const ts = value.toDate().getTime();
+  const diffMs = Math.max(0, now - ts);
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return language === "en" ? "Just now" : language === "ja" ? "たった今" : "剛剛";
+  if (diffMinutes < 60) {
+    if (language === "en") return `${diffMinutes}m ago`;
+    if (language === "ja") return `${diffMinutes}分前`;
+    return `${diffMinutes}分鐘前`;
+  }
+  if (diffDays <= 0) return language === "en" ? "Today" : language === "ja" ? "今日" : "今天";
+  if (language === "en") return `${diffDays}d ago`;
+  if (language === "ja") return `${diffDays}日前`;
+  return `${diffDays}天前`;
+}
+
 const MOTIVATION_KEYS = { know: "post.motivation.know", thanks: "post.motivation.thanks", noticed: "post.motivation.noticed" };
 
 function Profile() {
@@ -46,6 +66,7 @@ function Profile() {
   const [newLocation, setNewLocation] = useState("");
   const [saveError, setSaveError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [pendingAvatarId, setPendingAvatarId] = useState(1);
 
@@ -98,6 +119,14 @@ function Profile() {
         setPostsError(err.message || String(err));
       },
     );
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const q = query(collection(db, "notifications", user.uid, "items"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snap) => {
+      setNotifications(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
+    });
   }, [user]);
 
   const selectedAvatarId = Number(profile?.avatarId) >= 1 && Number(profile?.avatarId) <= 12 ? Number(profile?.avatarId) : 1;
@@ -154,6 +183,15 @@ function Profile() {
     navigate("/", { replace: true });
   };
 
+  const markNotificationRead = async (notificationId) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, "notifications", user.uid, "items", notificationId), { read: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="home-page account-page app-shell">
@@ -187,6 +225,30 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        <section className="account-section" aria-labelledby="profile-notification-heading">
+          <h2 id="profile-notification-heading" className="account-section-title">
+            {t("profile.notificationsTitle")}
+          </h2>
+          {notifications.length === 0 ? (
+            <p className="account-muted">{t("profile.notificationsEmpty")}</p>
+          ) : (
+            <ul className="profile-notification-list">
+              {notifications.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`profile-notification-item ${item.read ? "" : "is-unread"}`}
+                    onClick={() => markNotificationRead(item.id)}
+                  >
+                    <span className="profile-notification-message">{item.message || t("profile.notificationsFallback")}</span>
+                    <span className="profile-notification-time">{formatNotificationRelative(item.createdAt, language)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="account-section" aria-labelledby="profile-locations-heading">
           <h2 id="profile-locations-heading" className="account-section-title">
