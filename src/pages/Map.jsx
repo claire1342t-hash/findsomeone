@@ -1,16 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  collectionGroup,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { CustomCursor } from "../components/CustomCursor.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.png";
@@ -60,8 +73,8 @@ function ClusterLayer({ posts, onClusterPick }) {
       new L.Icon({
         iconUrl: pingIconSrc,
         iconRetinaUrl: pingIconSrc,
-        iconSize: [34, 34],
-        iconAnchor: [17, 33],
+        iconSize: [42, 42],
+        iconAnchor: [21, 40],
         popupAnchor: [0, -30],
       }),
     [],
@@ -113,9 +126,18 @@ function ClusterLayer({ posts, onClusterPick }) {
 
 function MapPage() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [clusterPosts, setClusterPosts] = useState([]);
   const [selectedPostId, setSelectedPostId] = useState(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [answer1, setAnswer1] = useState("");
+  const [answer2, setAnswer2] = useState("");
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
+  const [verifySubmitted, setVerifySubmitted] = useState(false);
+  const [verifyLocked, setVerifyLocked] = useState(false);
+  const [previousRejectedOnce, setPreviousRejectedOnce] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -129,6 +151,120 @@ function MapPage() {
   const closePanel = () => {
     setClusterPosts([]);
     setSelectedPostId(null);
+    setVerifyOpen(false);
+    setAnswer1("");
+    setAnswer2("");
+    setVerifyBusy(false);
+    setVerifyError("");
+    setVerifySubmitted(false);
+    setVerifyLocked(false);
+    setPreviousRejectedOnce(false);
+  };
+
+  const resetVerificationState = () => {
+    setVerifyOpen(false);
+    setAnswer1("");
+    setAnswer2("");
+    setVerifyBusy(false);
+    setVerifyError("");
+    setVerifySubmitted(false);
+    setVerifyLocked(false);
+    setPreviousRejectedOnce(false);
+  };
+
+  useEffect(() => {
+    async function inspectExistingResponse() {
+      if (!verifyOpen || !selectedPost || !user) return;
+      try {
+        const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
+        const snap = await getDoc(responseRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const status = String(data?.status || "");
+        const attemptCount = Number(data?.attemptCount || 1);
+        if (status === "rejected" && attemptCount >= 2) {
+          setVerifyLocked(true);
+          return;
+        }
+        if (status === "rejected" && attemptCount === 1) {
+          setPreviousRejectedOnce(true);
+          return;
+        }
+        setVerifySubmitted(true);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    inspectExistingResponse();
+  }, [verifyOpen, selectedPost, user]);
+
+  const resolvePosterUid = async (post) => {
+    if (typeof post?.authorUid === "string" && post.authorUid) return post.authorUid;
+    if (!post?.claimToken) return null;
+    const q = query(collectionGroup(db, "ownedPosts"), where("claimToken", "==", post.claimToken), limit(1));
+    const snap = await getDocs(q);
+    const row = snap.docs[0];
+    if (!row) return null;
+    const fromData = row.data()?.authorUid;
+    if (typeof fromData === "string" && fromData) return fromData;
+    return row.ref.parent.parent?.id ?? null;
+  };
+
+  const submitVerification = async () => {
+    if (!selectedPost || !user || verifyBusy || verifySubmitted || verifyLocked) return;
+    const trimmed1 = answer1.trim();
+    const trimmed2 = answer2.trim();
+    if (!trimmed1 || !trimmed2) {
+      setVerifyError(t("map.verifyAnswerRequired"));
+      return;
+    }
+    setVerifyBusy(true);
+    setVerifyError("");
+    try {
+      const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
+      const existingSnap = await getDoc(responseRef);
+      const existing = existingSnap.exists() ? existingSnap.data() : null;
+      const status = String(existing?.status || "");
+      const attemptCount = Number(existing?.attemptCount || 1);
+
+      if (status === "rejected" && attemptCount >= 2) {
+        setVerifyLocked(true);
+        setVerifyBusy(false);
+        return;
+      }
+
+      const nextAttemptCount = status === "rejected" && attemptCount === 1 ? 2 : 1;
+      await setDoc(
+        responseRef,
+        {
+          answers: [trimmed1, trimmed2],
+          createdAt: serverTimestamp(),
+          status: "pending",
+          attemptCount: nextAttemptCount,
+        },
+        { merge: true },
+      );
+
+      const posterUid = await resolvePosterUid(selectedPost);
+      if (posterUid) {
+        const notificationRef = doc(collection(db, "notifications", posterUid, "items"));
+        await setDoc(notificationRef, {
+          type: "new_response",
+          postId: selectedPost.id,
+          createdAt: serverTimestamp(),
+          read: false,
+          message: t("map.verifyPosterNotification"),
+        });
+      }
+
+      setVerifySubmitted(true);
+      setPreviousRejectedOnce(false);
+    } catch (err) {
+      console.error(err);
+      setVerifyError(err.message || String(err));
+    } finally {
+      setVerifyBusy(false);
+    }
   };
 
   return (
@@ -145,6 +281,7 @@ function MapPage() {
             onClusterPick={(items) => {
               setClusterPosts(items);
               setSelectedPostId(null);
+              resetVerificationState();
             }}
           />
         </MapContainer>
@@ -167,7 +304,10 @@ function MapPage() {
                     <button
                       type="button"
                       className={`map-post-card ${selectedPostId === post.id ? "is-active" : ""}`}
-                      onClick={() => setSelectedPostId(post.id)}
+                      onClick={() => {
+                        setSelectedPostId(post.id);
+                        resetVerificationState();
+                      }}
                     >
                       <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
                       <p className="map-post-card__story">{getStoryText(post, t)}</p>
@@ -198,9 +338,50 @@ function MapPage() {
                 <strong>{t("map.dateLabel")}：</strong>
                 {formatDate(selectedPost.createdAt, language)}
               </p>
-              <Link className="map-detail__cta" to={`/verify/${selectedPost.id}`}>
+              <button type="button" className="map-detail__cta" onClick={() => setVerifyOpen((prev) => !prev)}>
                 {t("map.cta")}
-              </Link>
+              </button>
+              <section className={`map-verify ${verifyOpen ? "is-open" : ""}`} aria-hidden={!verifyOpen}>
+                {verifyOpen ? (
+                  verifyLocked ? (
+                    <p className="map-verify__message map-verify__message--error">{t("map.verifyLocked")}</p>
+                  ) : !user ? (
+                    <p className="map-verify__message">{t("map.verifyLoginRequired")}</p>
+                  ) : verifySubmitted ? (
+                    <p className="map-verify__message map-verify__message--ok">{t("map.verifySubmitted")}</p>
+                  ) : (
+                    <>
+                      {previousRejectedOnce ? (
+                        <p className="map-verify__message">{t("map.verifyRetryHint")}</p>
+                      ) : null}
+                      <label className="map-verify__label">
+                        {selectedPost.questions?.[0] || t("post.q1.label")}
+                        <input
+                          type="text"
+                          className="map-verify__input"
+                          value={answer1}
+                          onChange={(e) => setAnswer1(e.target.value)}
+                          placeholder={t("post.q1.ph")}
+                        />
+                      </label>
+                      <label className="map-verify__label">
+                        {selectedPost.questions?.[1] || t("post.q2.label")}
+                        <input
+                          type="text"
+                          className="map-verify__input"
+                          value={answer2}
+                          onChange={(e) => setAnswer2(e.target.value)}
+                          placeholder={t("post.q2.ph")}
+                        />
+                      </label>
+                      {verifyError ? <p className="map-verify__message map-verify__message--error">{verifyError}</p> : null}
+                      <button type="button" className="map-verify__submit" disabled={verifyBusy} onClick={submitVerification}>
+                        {verifyBusy ? t("post.saving") : t("map.verifySubmit")}
+                      </button>
+                    </>
+                  )
+                ) : null}
+              </section>
             </aside>
           ) : null}
         </section>

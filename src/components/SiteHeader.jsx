@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
+import { doc, onSnapshot } from "firebase/firestore";
 import profileImg from "../assets/illustrations/profile.png";
 import { SUPPORTED_LANGUAGES, useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { db } from "../firebase.js";
+import { getAvatarById } from "../assets/avatarOptions.js";
+import { useEffect, useState } from "react";
 
 const NAV_KEYS = [
   { to: "/", key: "nav.home" },
@@ -13,8 +17,19 @@ const NAV_KEYS = [
 export function SiteHeader() {
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
+  const [avatarId, setAvatarId] = useState(1);
   const profileHref = user ? "/profile" : "/login";
   const profileAria = user ? t("meta.profileAriaUser") : t("meta.profileAriaGuest");
+  const avatarSrc = user ? getAvatarById(avatarId) : profileImg;
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const ref = doc(db, "users", user.uid);
+    return onSnapshot(ref, (snap) => {
+      const id = Number(snap.data()?.avatarId);
+      setAvatarId(id >= 1 && id <= 12 ? id : 1);
+    });
+  }, [user]);
 
   return (
     <header className="top-nav">
@@ -49,7 +64,7 @@ export function SiteHeader() {
           ))}
         </div>
         <Link className="avatar-button" to={profileHref} aria-label={profileAria}>
-          <img src={profileImg} alt={profileAria} />
+          <img src={avatarSrc} alt={profileAria} />
         </Link>
       </div>
     </header>

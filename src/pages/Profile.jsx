@@ -16,6 +16,7 @@ import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import defaultAvatar from "../assets/illustrations/profile.png";
+import { AVATAR_OPTIONS, getAvatarById } from "../assets/avatarOptions.js";
 import "./Account.css";
 
 function formatCreatedAt(value, locale) {
@@ -45,6 +46,9 @@ function Profile() {
   const [postsError, setPostsError] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [pendingAvatarId, setPendingAvatarId] = useState(1);
 
   const locale = useMemo(() => {
     if (language === "zh") return "zh-TW";
@@ -97,10 +101,30 @@ function Profile() {
     );
   }, [user]);
 
-  const avatarSrc = user?.photoURL || defaultAvatar;
+  const selectedAvatarId = Number(profile?.avatarId) >= 1 && Number(profile?.avatarId) <= 12 ? Number(profile?.avatarId) : 1;
+  const avatarSrc = user ? getAvatarById(selectedAvatarId) : user?.photoURL || defaultAvatar;
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "—";
   const email = profile?.email || user?.email || "—";
   const locations = Array.isArray(profile?.subscribedLocations) ? profile.subscribedLocations : [];
+
+  const saveAvatar = async () => {
+    if (!user || avatarSaving) return;
+    setSaveError("");
+    setAvatarSaving(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid), { avatarId: pendingAvatarId });
+      setIsAvatarModalOpen(false);
+    } catch (e) {
+      setSaveError(e.message || String(e));
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const openAvatarModal = () => {
+    setPendingAvatarId(selectedAvatarId);
+    setIsAvatarModalOpen(true);
+  };
 
   const addLocation = async () => {
     const label = newLocation.trim();
@@ -149,7 +173,9 @@ function Profile() {
       <SiteHeader />
       <main className="account-main">
         <div className="profile-hero">
-          <img className="profile-avatar" src={avatarSrc} alt="" width={96} height={96} />
+          <button type="button" className="profile-avatar-trigger" onClick={openAvatarModal} aria-label={t("profile.avatarOpen")}>
+            <img className="profile-avatar" src={avatarSrc} alt="" width={96} height={96} />
+          </button>
           <div className="profile-hero-text">
             <h1 className="account-title profile-name">{displayName}</h1>
             <p className="profile-email">{email}</p>
@@ -226,6 +252,42 @@ function Profile() {
           )}
         </section>
       </main>
+      {isAvatarModalOpen ? (
+        <div className="profile-avatar-modal" role="dialog" aria-modal="true" aria-label={t("profile.avatarTitle")}>
+          <button
+            type="button"
+            className="profile-avatar-modal__backdrop"
+            onClick={() => setIsAvatarModalOpen(false)}
+            aria-label={t("profile.avatarCancel")}
+          />
+          <div className="profile-avatar-modal__panel">
+            <h2 className="account-section-title">{t("profile.avatarTitle")}</h2>
+            <p className="account-section-intro">{t("profile.avatarIntro")}</p>
+            <div className="profile-avatar-grid" role="list">
+              {AVATAR_OPTIONS.map((avatar) => (
+                <button
+                  key={avatar.id}
+                  type="button"
+                  className={`profile-avatar-option ${pendingAvatarId === avatar.id ? "is-selected" : ""}`}
+                  onClick={() => setPendingAvatarId(avatar.id)}
+                  aria-pressed={pendingAvatarId === avatar.id}
+                  aria-label={`${t("profile.avatarOption")} ${avatar.id}`}
+                >
+                  <img src={avatar.src} alt="" width={36} height={36} />
+                </button>
+              ))}
+            </div>
+            <div className="profile-avatar-modal__actions">
+              <button type="button" className="account-btn account-btn--outline" onClick={() => setIsAvatarModalOpen(false)}>
+                {t("profile.avatarCancel")}
+              </button>
+              <button type="button" className="account-btn account-btn--primary" onClick={saveAvatar} disabled={avatarSaving}>
+                {avatarSaving ? t("post.saving") : t("profile.avatarSave")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Footer />
       <CustomCursor />
     </div>

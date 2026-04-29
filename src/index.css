@@ -206,10 +206,14 @@ a {
   background: #f4f4f4;
   padding: 28px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 22px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 0;
+  align-items: start;
   box-shadow: var(--shadow-soft);
+}
+
+.hero-copy {
+  max-width: 720px;
 }
 
 .hero-copy h1 {
@@ -229,7 +233,6 @@ a {
 .hero-image-button {
   width: 100%;
   max-width: 300px;
-  justify-self: center;
   margin: 0 auto;
   position: relative;
   display: block;
@@ -322,6 +325,12 @@ a {
   line-height: 1.5;
 }
 
+.home-post-cta {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
 @media (max-width: 960px) {
   .top-nav {
     grid-template-columns: 1fr;
@@ -341,10 +350,6 @@ a {
 
   .hero-section {
     grid-template-columns: 1fr;
-  }
-
-  .hero-image-button {
-    justify-self: center;
   }
 }
 

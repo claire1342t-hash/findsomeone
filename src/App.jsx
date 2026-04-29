@@ -31,14 +31,6 @@ function App() {
             <h1>{t("hero.h1")}</h1>
             <p className="hero-subtext">{t("hero.sub")}</p>
           </div>
-          <Link className="hero-image-button" to="/post" aria-label={t("hero.postCta")}>
-            <img className="hero-button-image default" src={buttonDefault} alt={t("hero.postCta")} />
-            <img
-              className="hero-button-image active"
-              src={buttonActive}
-              alt={`${t("hero.postCta")} (active)`}
-            />
-          </Link>
         </section>
         <section className="feature-grid" aria-label="Feature introduction">
           {featureCards.map((card) => (
@@ -61,6 +53,16 @@ function App() {
               <p>{t(card.descKey)}</p>
             </article>
           ))}
+        </section>
+        <section className="home-post-cta" aria-label={t("hero.postCta")}>
+          <Link className="hero-image-button" to="/post" aria-label={t("hero.postCta")}>
+            <img className="hero-button-image default" src={buttonDefault} alt={t("hero.postCta")} />
+            <img
+              className="hero-button-image active"
+              src={buttonActive}
+              alt={`${t("hero.postCta")} (active)`}
+            />
+          </Link>
         </section>
       </main>
       <Footer />

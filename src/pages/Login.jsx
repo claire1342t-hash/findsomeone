@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
-  getRedirectResult,
   signInWithEmailAndPassword,
-  signInWithRedirect,
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase.js";
@@ -16,8 +13,6 @@ import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "./Account.css";
 
-const googleProvider = new GoogleAuthProvider();
-
 /**
  * @param {unknown} err
  * @param {(key: string) => string} t
@@ -25,7 +20,11 @@ const googleProvider = new GoogleAuthProvider();
  */
 function friendlyAuthError(err, t) {
   const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
-  if (code === "auth/popup-closed-by-user") {
+  if (
+    code === "auth/popup-closed-by-user" ||
+    code === "auth/redirect-cancelled-by-user" ||
+    code === "auth/cancelled-popup-request"
+  ) {
     return null;
   }
   if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
@@ -60,39 +59,6 @@ function Login() {
     }
   }, [loading, user, navigate]);
 
-  useEffect(() => {
-    let alive = true;
-    const run = async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (error) {
-        if (!alive) return;
-        const msg = friendlyAuthError(error, t);
-        setError(msg === null ? "" : msg);
-      } finally {
-        if (alive) {
-          setBusy(false);
-        }
-      }
-    };
-    run();
-    return () => {
-      alive = false;
-    };
-  }, [t]);
-
-  const handleGoogle = async () => {
-    setError("");
-    setBusy(true);
-    try {
-      await signInWithRedirect(auth, googleProvider);
-    } catch (e) {
-      setBusy(false);
-      const msg = friendlyAuthError(e, t);
-      setError(msg === null ? "" : msg);
-    }
-  };
-
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -120,12 +86,6 @@ function Login() {
       <main className="account-main">
         <h1 className="account-title">{t("login.title")}</h1>
         <div className="account-card">
-          <button type="button" className="account-btn account-btn--google" onClick={handleGoogle} disabled={busy || loading}>
-            {t("login.google")}
-          </button>
-          <p className="account-divider">
-            <span>{t("login.or")}</span>
-          </p>
           <form className="account-form" onSubmit={handleEmailSubmit}>
             {mode === "register" ? (
               <div className="account-field">
