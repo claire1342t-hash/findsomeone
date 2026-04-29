@@ -10,7 +10,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.js";
-import { CustomCursor } from "../components/CustomCursor.jsx";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -163,7 +162,6 @@ function Profile() {
           <p className="account-muted">{t("profile.loading")}</p>
         </main>
         <Footer />
-        <CustomCursor />
       </div>
     );
   }
@@ -173,8 +171,8 @@ function Profile() {
       <SiteHeader />
       <main className="account-main">
         <div className="profile-hero">
-          <button type="button" className="profile-avatar-trigger" onClick={openAvatarModal} aria-label={t("profile.avatarOpen")}>
-            <img className="profile-avatar" src={avatarSrc} alt="" width={96} height={96} />
+          <button type="button" className="profile-picture-trigger" onClick={openAvatarModal} aria-label={t("profile.avatarOpen")}>
+            <img className="profile-picture" src={avatarSrc} alt="" width={96} height={96} />
           </button>
           <div className="profile-hero-text">
             <h1 className="account-title profile-name">{displayName}</h1>
@@ -253,22 +251,22 @@ function Profile() {
         </section>
       </main>
       {isAvatarModalOpen ? (
-        <div className="profile-avatar-modal" role="dialog" aria-modal="true" aria-label={t("profile.avatarTitle")}>
+        <div className="profile-picture-modal" role="dialog" aria-modal="true" aria-label={t("profile.avatarTitle")}>
           <button
             type="button"
-            className="profile-avatar-modal__backdrop"
+            className="profile-picture-modal__backdrop"
             onClick={() => setIsAvatarModalOpen(false)}
             aria-label={t("profile.avatarCancel")}
           />
-          <div className="profile-avatar-modal__panel">
+          <div className="profile-picture-modal__panel">
             <h2 className="account-section-title">{t("profile.avatarTitle")}</h2>
             <p className="account-section-intro">{t("profile.avatarIntro")}</p>
-            <div className="profile-avatar-grid" role="list">
+            <div className="profile-picture-grid" role="list">
               {AVATAR_OPTIONS.map((avatar) => (
                 <button
                   key={avatar.id}
                   type="button"
-                  className={`profile-avatar-option ${pendingAvatarId === avatar.id ? "is-selected" : ""}`}
+                  className={`profile-picture-option ${pendingAvatarId === avatar.id ? "is-selected" : ""}`}
                   onClick={() => setPendingAvatarId(avatar.id)}
                   aria-pressed={pendingAvatarId === avatar.id}
                   aria-label={`${t("profile.avatarOption")} ${avatar.id}`}
@@ -277,7 +275,7 @@ function Profile() {
                 </button>
               ))}
             </div>
-            <div className="profile-avatar-modal__actions">
+            <div className="profile-picture-modal__actions">
               <button type="button" className="account-btn account-btn--outline" onClick={() => setIsAvatarModalOpen(false)}>
                 {t("profile.avatarCancel")}
               </button>
@@ -289,7 +287,6 @@ function Profile() {
         </div>
       ) : null}
       <Footer />
-      <CustomCursor />
     </div>
   );
 }

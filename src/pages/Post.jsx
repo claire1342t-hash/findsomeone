@@ -5,7 +5,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { collection, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase.js";
-import { CustomCursor } from "../components/CustomCursor.jsx";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -274,7 +273,6 @@ function Post() {
         </form>
       </main>
       <Footer />
-      <CustomCursor />
     </div>
   );
 }

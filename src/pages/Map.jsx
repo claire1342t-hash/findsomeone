@@ -21,7 +21,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
-import { CustomCursor } from "../components/CustomCursor.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import "./Map.css";
@@ -386,7 +385,6 @@ function MapPage() {
           ) : null}
         </section>
       </main>
-      <CustomCursor />
     </div>
   );
 }

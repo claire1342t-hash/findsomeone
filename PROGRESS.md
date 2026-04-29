@@ -19,15 +19,22 @@
 - Post 頁面新增「大概位置描述」欄位
 - 地圖頁面：cluster 聚合、自訂 ping.png 圖釘、Bottom Sheet、左右分割細節視圖
 
-## 🔧 待修正
-Profile icon — 登入後換成 Google 帳號照片，或建立隨機頭像資料庫
+### Day 3 (2026-04-29)
+post按鈕從hero移到homepage最下面
+關毅firebase用google登入的選項
+修正行動版layout中地圖頁面點開時，navbar與預覽視窗重疊的錯誤
+新增profile pic
+Ping icon — 大小變更
 「我就是那個人」後續流程 — 驗證問題頁面（/verify/:postId）
-發文時間格式 — 只顯示日期，拿掉時間和秒數
-Ping icon — 太小太不明顯，需要調大或換設計
+
+
+## 🔧 待修正
 訂閱常去地點 — 功能要有實際意義，連結到通知系統
-Notification 系統 — 站內通知中心或 Email 通知
-修正行動版layout
-log in問題
+註銷或關閉貼文
+訂閱常去地點功能要有實際意義
+通知系統（發文者收到「有人回覆」的通知）站內通知中心或 Email 通知
+聊天室
+About 頁面完成（品牌故事、功能介紹、作者介紹、聯絡信封）
 
 ## 📋 待開發
 - 驗證問題流程（/verify/:postId）

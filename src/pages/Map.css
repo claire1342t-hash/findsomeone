@@ -1,5 +1,5 @@
 .map-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-main);
 }
 
@@ -19,7 +19,7 @@
 
 .map-page__main {
   position: relative;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -77,7 +77,7 @@
   font-size: 24px;
   color: #646464;
   line-height: 1;
-  cursor: none;
+  cursor: auto;
   z-index: 2;
 }
 
@@ -121,7 +121,7 @@
   background: #fff;
   border-radius: 14px;
   padding: 12px 14px;
-  cursor: none;
+  cursor: auto;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
@@ -228,7 +228,7 @@
   font-size: 16px;
   font-weight: 700;
   border: 0;
-  cursor: none;
+  cursor: auto;
 }
 
 .map-verify {
@@ -281,7 +281,7 @@
   font-size: 14px;
   font-weight: 700;
   padding: 0 18px;
-  cursor: none;
+  cursor: auto;
 }
 
 .map-verify__submit:disabled {
@@ -326,8 +326,20 @@
     width: 100%;
   }
 
+  .map-sheet.is-split .map-sheet__left {
+    /* top panel fixed preview height (~1 card) */
+    flex: 0 0 250px;
+    height: 250px;
+    min-height: 0;
+    overflow: auto;
+  }
+
   .map-sheet.is-split .map-sheet__right {
     width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    /* bottom panel scroll when content overflows */
+    overflow: auto;
   }
 }
 

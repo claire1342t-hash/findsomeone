@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { CustomCursor } from "./components/CustomCursor.jsx";
 import { SiteHeader } from "./components/SiteHeader.jsx";
 import { Footer } from "./components/Footer.jsx";
 import { useLanguage } from "./context/LanguageContext.jsx";
@@ -66,7 +65,6 @@ function App() {
         </section>
       </main>
       <Footer />
-      <CustomCursor />
     </div>
   );
 }

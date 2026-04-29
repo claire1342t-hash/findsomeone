@@ -6,7 +6,6 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase.js";
-import { CustomCursor } from "../components/CustomCursor.jsx";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -159,7 +158,6 @@ function Login() {
         </div>
       </main>
       <Footer />
-      <CustomCursor />
     </div>
   );
 }
