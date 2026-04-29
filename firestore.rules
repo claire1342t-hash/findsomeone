@@ -1,26 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Private ownership row: real Firebase uid lives only here (authorUid), never on posts.
-    // claimToken must match the sibling posts/{postId} doc (set in the same batch).
+    match /users/{userId} {
+      // Authenticated users can read/write their own profile document
+      allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
     match /users/{userId}/ownedPosts/{postId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Keep owner index writable by owner; readable by authenticated users for lookups
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /posts/{postId} {
       function ownedPostsLink() {
         return get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId));
       }
+      function ownedPostsLinkAfter() {
+        return getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId));
+      }
 
       allow read: if true;
 
-      allow create: if request.auth != null
+      // Authenticated users can create posts
+      allow create: if isSignedIn()
         && !(request.resource.data.keys().hasAll(["uid"]))
         && request.resource.data.keys().hasAll([
           "authorPublicId",
@@ -32,12 +39,37 @@ service cloud.firestore {
           "questions",
           "createdAt",
         ])
-        && request.resource.data.claimToken == ownedPostsLink().data.claimToken
-        && ownedPostsLink().data.authorUid == request.auth.uid;
+        // Post and ownedPosts are written in the same batch from Post.jsx,
+        // so we must use getAfter() to read the sibling doc in this write.
+        && request.resource.data.claimToken == ownedPostsLinkAfter().data.claimToken
+        && ownedPostsLinkAfter().data.authorUid == request.auth.uid;
 
-      allow update, delete: if request.auth != null
+      // Post authors can update/delete their own posts
+      allow update, delete: if isSignedIn()
         && resource.data.claimToken == ownedPostsLink().data.claimToken
         && ownedPostsLink().data.authorUid == request.auth.uid;
+
+      match /responses/{responseUserId} {
+        // Any authenticated user can create responses under any post.
+        // response doc id is expected to be responder uid in Map.jsx.
+        allow create, update: if isSignedIn()
+          && request.auth.uid == responseUserId;
+
+        // Responder can read their own response; post author can read responses on own post.
+        allow read: if isSignedIn() && (
+          request.auth.uid == responseUserId ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId)).data.authorUid == request.auth.uid
+        );
+      }
+    }
+
+    match /notifications/{userId}/items/{notificationId} {
+      // Users can read/write their own notifications.
+      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+
+      // Any authenticated user can write to any user's notifications
+      // (used for notification delivery to the post author).
+      allow create, update: if isSignedIn();
     }
   }
 }

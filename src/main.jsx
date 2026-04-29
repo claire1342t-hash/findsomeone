@@ -11,6 +11,18 @@ import MapPage from "./pages/Map.jsx";
 import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
 
+function PlaceholderPage({ title }) {
+  return (
+    <main className="home-main">
+      <section className="hero-section">
+        <div className="hero-copy">
+          <h1>{title}</h1>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <LanguageProvider>
@@ -22,6 +34,8 @@ createRoot(document.getElementById("root")).render(
             <Route path="/map" element={<MapPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/about" element={<PlaceholderPage title="About page coming soon" />} />
+            <Route path="/chat" element={<PlaceholderPage title="Chat page coming soon" />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

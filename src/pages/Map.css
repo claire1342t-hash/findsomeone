@@ -331,8 +331,8 @@
 
   .map-sheet.is-split .map-sheet__left {
     /* top panel fixed preview height (~1 card) */
-    flex: 0 0 250px;
-    height: 250px;
+    flex: 0 0 210px;
+    height: 210px;
     min-height: 0;
     overflow: auto;
   }

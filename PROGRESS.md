@@ -26,6 +26,10 @@ post按鈕從hero移到homepage最下面
 新增profile pic
 Ping icon — 大小變更
 「我就是那個人」後續流程 — 驗證問題頁面（/verify/:postId）
+變更成配合各種載具的頁面高度
+map貼文與細節地方的顯示大小改變
+logo換掉
+navbar大小變更
 
 
 ## 🔧 待修正
@@ -35,6 +39,21 @@ Ping icon — 大小變更
 通知系統（發文者收到「有人回覆」的通知）站內通知中心或 Email 通知
 聊天室
 About 頁面完成（品牌故事、功能介紹、作者介紹、聯絡信封）
+
+安全性（重要，上線前必須修）
+Firestore rules — 通知權限過寬，其他用戶可以 update 別人的通知，改成只允許 create
+ownedPosts — 客戶端可偽造 ownership，改用 posts.authorUid 做驗證依據
+responder 可竄改 response 的 status/attemptCount，加欄位限制
+功能 bug
+4. Map 驗證狀態只做一次 getDoc，改成 onSnapshot 即時同步
+5. 註冊時 displayName 時序競態，可能寫入錯誤名字
+6. 動機標籤顯示異常值時沒有 fallback
+資料驗證
+7. 發文內容可全空字串送出，加最小長度驗證
+8. 訂閱地點無去重、無上限，加限制
+細節
+9. 可點擊元素 cursor: auto 改成 cursor: pointer
+10. SiteHeader 的 aria-label 硬編碼，補進 i18n
 
 ## 📋 待開發
 - 驗證問題流程（/verify/:postId）

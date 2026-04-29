@@ -172,29 +172,44 @@ function MapPage() {
   };
 
   useEffect(() => {
+    let active = true;
     async function inspectExistingResponse() {
       if (!verifyOpen || !selectedPost || !user) return;
       try {
         const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
         const snap = await getDoc(responseRef);
-        if (!snap.exists()) return;
+        if (!active) return;
+        if (!snap.exists()) {
+          setVerifySubmitted(false);
+          setVerifyLocked(false);
+          setPreviousRejectedOnce(false);
+          return;
+        }
         const data = snap.data();
         const status = String(data?.status || "");
         const attemptCount = Number(data?.attemptCount || 1);
         if (status === "rejected" && attemptCount >= 2) {
+          if (!active) return;
           setVerifyLocked(true);
           return;
         }
         if (status === "rejected" && attemptCount === 1) {
+          if (!active) return;
+          setVerifySubmitted(false);
           setPreviousRejectedOnce(true);
           return;
         }
-        setVerifySubmitted(true);
+        if (!active) return;
+        // "已回覆" only when current user has their own response doc under this post
+        setVerifySubmitted(snap.exists());
       } catch (err) {
         console.error(err);
       }
     }
     inspectExistingResponse();
+    return () => {
+      active = false;
+    };
   }, [verifyOpen, selectedPost, user]);
 
   const resolvePosterUid = async (post) => {

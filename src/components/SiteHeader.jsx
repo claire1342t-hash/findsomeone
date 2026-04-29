@@ -33,7 +33,10 @@ export function SiteHeader() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user) {
+      setHasUnreadNotifications(false);
+      return undefined;
+    }
     const q = query(collection(db, "notifications", user.uid, "items"), where("read", "==", false));
     return onSnapshot(q, (snap) => {
       setHasUnreadNotifications(!snap.empty);
