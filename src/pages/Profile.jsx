@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
+  increment,
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
@@ -16,23 +21,9 @@ import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import defaultAvatar from "../assets/illustrations/profile.png";
 import { AVATAR_OPTIONS, getAvatarById } from "../assets/avatarOptions.js";
+import { generateAnonymousName } from "../utils/generateAnonymousName.js";
+import { deletePostCascade, isPostExpired } from "../utils/postLifecycle.js";
 import "./Account.css";
-
-function formatCreatedAt(value, locale) {
-  if (!value) return "—";
-  const d = value.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
-}
-
-function createdAtIso(value) {
-  if (!value?.toDate) return undefined;
-  try {
-    return value.toDate().toISOString();
-  } catch {
-    return undefined;
-  }
-}
 
 function formatNotificationRelative(value, language) {
   if (!value?.toDate) return "—";
@@ -54,7 +45,42 @@ function formatNotificationRelative(value, language) {
   return `${diffDays}天前`;
 }
 
+function createdAtIso(value) {
+  if (!value?.toDate) return undefined;
+  return value.toDate().toISOString();
+}
+
 const MOTIVATION_KEYS = { know: "post.motivation.know", thanks: "post.motivation.thanks", noticed: "post.motivation.noticed" };
+
+function getResponseStatusKind(response) {
+  const status = String(response?.status || "").toLowerCase();
+  const attemptCount = Number(response?.attemptCount ?? 1);
+  if (status === "pending") return "pending";
+  if (status === "rejected" && attemptCount === 1) return "retry";
+  if (status === "rejected" && attemptCount >= 2) return "closed";
+  if (status === "accepted") return "accepted";
+  return "pending";
+}
+
+function appearanceTitleFromPost(post, t) {
+  if (!post) return t("profile.repliesPostMissing");
+  const appearance = post.description?.appearance ?? "";
+  const firstLine = appearance.split(/\r?\n/)[0].trim();
+  return firstLine || t("map.postFallbackAppearance");
+}
+
+function firstLineFromAppearance(description, t) {
+  const appearance = description?.appearance ?? "";
+  const firstLine = appearance.split(/\r?\n/)[0].trim();
+  return firstLine || t("map.postFallbackAppearance");
+}
+
+function getMotivationLabel(post, t) {
+  if (post?.motivation === "custom") {
+    return post?.motivationCustom || t("post.motivation.custom");
+  }
+  return t(MOTIVATION_KEYS[post?.motivation] ?? "post.motivation.know");
+}
 
 function Profile() {
   const { t, language } = useLanguage();
@@ -63,18 +89,16 @@ function Profile() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [postsError, setPostsError] = useState("");
-  const [newLocation, setNewLocation] = useState("");
+  const [postResponsesByPostId, setPostResponsesByPostId] = useState({});
+  const [expandedPostIds, setExpandedPostIds] = useState({});
+  const [responseActionBusy, setResponseActionBusy] = useState({});
+  const [deletedChatsById, setDeletedChatsById] = useState({});
+  const [repliedPosts, setRepliedPosts] = useState([]);
+  const [repliedPostsError, setRepliedPostsError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [pendingAvatarId, setPendingAvatarId] = useState(1);
-
-  const locale = useMemo(() => {
-    if (language === "zh") return "zh-TW";
-    if (language === "ja") return "ja-JP";
-    return "en-US";
-  }, [language]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -99,16 +123,31 @@ function Profile() {
         try {
           const ids = snap.docs.map((d) => d.id);
           const rows = await Promise.all(ids.map((id) => getDoc(doc(db, "posts", id))));
+          const expiredIds = [];
           setPostsError("");
           setPosts(
             rows
-              .filter((d) => d.exists())
+              .filter((d) => {
+                if (!d.exists()) return false;
+                if (isPostExpired(d.data()?.createdAt)) {
+                  expiredIds.push(d.id);
+                  return false;
+                }
+                return true;
+              })
               .map((d) => {
                 const data = d.data();
                 const { claimToken: _claim, ...rest } = data;
                 return { id: d.id, ...rest };
               }),
           );
+          if (expiredIds.length > 0) {
+            expiredIds.forEach((postId) => {
+              deletePostCascade(postId, user.uid).catch((err) => {
+                console.error(err);
+              });
+            });
+          }
         } catch (err) {
           console.error(err);
           setPostsError(err.message || String(err));
@@ -123,17 +162,126 @@ function Profile() {
 
   useEffect(() => {
     if (!user) return undefined;
-    const q = query(collection(db, "notifications", user.uid, "items"), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (snap) => {
-      setNotifications(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
-    });
+    let cancelled = false;
+    const q = query(collectionGroup(db, "responses"), where("responderUid", "==", user.uid));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        void (async () => {
+          try {
+            const enriched = await Promise.all(
+              snap.docs.map(async (d) => {
+                const postRef = d.ref.parent.parent;
+                const postSnap = await getDoc(postRef);
+                const responseData = d.data();
+                let partnerAnonymousName = "";
+                let chatDeleted = false;
+                const chatId = typeof responseData.chatId === "string" ? responseData.chatId : "";
+                if (chatId) {
+                  const chatSnap = await getDoc(doc(db, "chats", chatId));
+                  if (chatSnap.exists()) {
+                    const chatData = chatSnap.data();
+                    partnerAnonymousName =
+                      user.uid === chatData.posterUid
+                        ? chatData.responderAnonymousName || chatData.responderName || ""
+                        : chatData.posterAnonymousName || chatData.posterName || "";
+                  } else {
+                    chatDeleted = true;
+                  }
+                }
+                return {
+                  path: d.ref.path,
+                  response: responseData,
+                  post: postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } : null,
+                  partnerAnonymousName,
+                  chatDeleted,
+                };
+              }),
+            );
+            if (cancelled) return;
+            enriched.sort((a, b) => {
+              const ta = a.response?.createdAt?.toDate?.()?.getTime?.() ?? 0;
+              const tb = b.response?.createdAt?.toDate?.()?.getTime?.() ?? 0;
+              return tb - ta;
+            });
+            setRepliedPosts(enriched);
+            setRepliedPostsError("");
+          } catch (err) {
+            if (!cancelled) {
+              setRepliedPosts([]);
+              setRepliedPostsError("");
+            }
+          }
+        })();
+      },
+      () => {
+        if (!cancelled) {
+          setRepliedPosts([]);
+          setRepliedPostsError("");
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [user]);
+
+  useEffect(() => {
+    if (!posts.length) return undefined;
+    const unsubscribers = posts.map((post) =>
+      onSnapshot(collection(db, "posts", post.id, "responses"), (snap) => {
+        setPostResponsesByPostId((prev) => ({
+          ...prev,
+          [post.id]: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        }));
+      }),
+    );
+    return () => {
+      unsubscribers.forEach((unsub) => unsub());
+    };
+  }, [posts]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function inspectChats() {
+      const chatIds = new Set();
+      Object.values(postResponsesByPostId).forEach((responses) => {
+        responses.forEach((resp) => {
+          if (String(resp?.status || "") === "accepted" && typeof resp?.chatId === "string" && resp.chatId) {
+            chatIds.add(resp.chatId);
+          }
+        });
+      });
+      if (chatIds.size === 0) {
+        if (!cancelled) setDeletedChatsById({});
+        return;
+      }
+      const results = await Promise.all(
+        Array.from(chatIds).map(async (chatId) => {
+          try {
+            const snap = await getDoc(doc(db, "chats", chatId));
+            return [chatId, !snap.exists()];
+          } catch (err) {
+            // Legacy chat docs may fail read rules; treat as unavailable.
+            console.error(err);
+            return [chatId, true];
+          }
+        }),
+      );
+      if (cancelled) return;
+      setDeletedChatsById(Object.fromEntries(results));
+    }
+    void inspectChats();
+    return () => {
+      cancelled = true;
+    };
+  }, [postResponsesByPostId]);
 
   const selectedAvatarId = Number(profile?.avatarId) >= 1 && Number(profile?.avatarId) <= 12 ? Number(profile?.avatarId) : 1;
   const avatarSrc = user ? getAvatarById(selectedAvatarId) : user?.photoURL || defaultAvatar;
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "—";
   const email = profile?.email || user?.email || "—";
-  const locations = Array.isArray(profile?.subscribedLocations) ? profile.subscribedLocations : [];
 
   const saveAvatar = async () => {
     if (!user || avatarSaving) return;
@@ -154,41 +302,107 @@ function Profile() {
     setIsAvatarModalOpen(true);
   };
 
-  const addLocation = async () => {
-    const label = newLocation.trim();
-    if (!label || !user) return;
-    setSaveError("");
-    const next = [...locations, label];
-    try {
-      await updateDoc(doc(db, "users", user.uid), { subscribedLocations: next });
-      setNewLocation("");
-    } catch (e) {
-      setSaveError(e.message || String(e));
-    }
-  };
-
-  const removeLocation = async (index) => {
-    if (!user) return;
-    setSaveError("");
-    const next = locations.filter((_, i) => i !== index);
-    try {
-      await updateDoc(doc(db, "users", user.uid), { subscribedLocations: next });
-    } catch (e) {
-      setSaveError(e.message || String(e));
-    }
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/", { replace: true });
   };
 
-  const markNotificationRead = async (notificationId) => {
+  const approveResponse = async (postId, responseUserId) => {
     if (!user) return;
+    const busyKey = `${postId}:${responseUserId}`;
+    setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
-      await updateDoc(doc(db, "notifications", user.uid, "items", notificationId), { read: true });
+      const responseRef = doc(db, "posts", postId, "responses", responseUserId);
+      const responseSnap = await getDoc(responseRef);
+      if (!responseSnap.exists()) return;
+      const responseData = responseSnap.data();
+      const existingChatId = typeof responseData.chatId === "string" ? responseData.chatId : "";
+      const chatRef = existingChatId ? doc(db, "chats", existingChatId) : doc(collection(db, "chats"));
+      let responderAnonymousName = responseData.responderAnonymousName || "";
+      let posterAnonymousName = "";
+      let expiresAt =
+        responseData.createdAt?.toDate?.() != null
+          ? new Date(responseData.createdAt.toDate().getTime() + 7 * 24 * 60 * 60 * 1000)
+          : new Date(0);
+
+      if (existingChatId) {
+        const existingChatSnap = await getDoc(chatRef);
+        if (existingChatSnap.exists()) {
+          const existingChatData = existingChatSnap.data();
+          responderAnonymousName =
+            responderAnonymousName ||
+            existingChatData.responderAnonymousName ||
+            existingChatData.responderName ||
+            generateAnonymousName(language);
+          posterAnonymousName =
+            existingChatData.posterAnonymousName || existingChatData.posterName || generateAnonymousName(language);
+          expiresAt = existingChatData.expiresAt?.toDate?.() ?? expiresAt;
+        } else {
+          responderAnonymousName = responderAnonymousName || generateAnonymousName(language);
+          posterAnonymousName = generateAnonymousName(language);
+        }
+      } else {
+        responderAnonymousName = responderAnonymousName || generateAnonymousName(language);
+        posterAnonymousName = generateAnonymousName(language);
+      }
+      await setDoc(
+        chatRef,
+        {
+          postId,
+          posterUid: user.uid,
+          responderUid: responseUserId,
+          posterAnonymousName,
+          responderAnonymousName,
+          // backward compatibility for existing UI reads
+          posterName: posterAnonymousName,
+          responderName: responderAnonymousName,
+          participants: [user.uid, responseUserId],
+          createdAt: responseData.createdAt || serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          expiresAt,
+        },
+      );
+      await updateDoc(responseRef, {
+        status: "accepted",
+        chatId: chatRef.id,
+        reviewedAt: serverTimestamp(),
+      });
+      navigate(`/chat/${chatRef.id}`);
     } catch (err) {
       console.error(err);
+    } finally {
+      setResponseActionBusy((prev) => ({ ...prev, [busyKey]: false }));
+    }
+  };
+
+  const rejectResponse = async (postId, responseUserId) => {
+    if (!user) return;
+    const confirmed = window.confirm("確定要標記為認錯了嗎？對方將收到通知。");
+    if (!confirmed) return;
+    const busyKey = `${postId}:${responseUserId}`;
+    setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
+    try {
+      await updateDoc(doc(db, "posts", postId, "responses", responseUserId), {
+        status: "rejected",
+        attemptCount: increment(1),
+        reviewedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResponseActionBusy((prev) => ({ ...prev, [busyKey]: false }));
+    }
+  };
+
+  const deletePostManually = async (postId) => {
+    const ok = window.confirm("確定要刪除這篇貼文？所有回覆與聊天室會一併刪除。");
+    if (!ok || !user) return;
+    try {
+      await deletePostCascade(postId, user.uid);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (err) {
+      console.error(err);
+      setPostsError(err.message || String(err));
     }
   };
 
@@ -225,65 +439,7 @@ function Profile() {
             </div>
           </div>
         </div>
-
-        <section className="account-section" aria-labelledby="profile-notification-heading">
-          <h2 id="profile-notification-heading" className="account-section-title">
-            {t("profile.notificationsTitle")}
-          </h2>
-          {notifications.length === 0 ? (
-            <p className="account-muted">{t("profile.notificationsEmpty")}</p>
-          ) : (
-            <ul className="profile-notification-list">
-              {notifications.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className={`profile-notification-item ${item.read ? "" : "is-unread"}`}
-                    onClick={() => markNotificationRead(item.id)}
-                  >
-                    <span className="profile-notification-message">{item.message || t("profile.notificationsFallback")}</span>
-                    <span className="profile-notification-time">{formatNotificationRelative(item.createdAt, language)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="account-section" aria-labelledby="profile-locations-heading">
-          <h2 id="profile-locations-heading" className="account-section-title">
-            {t("profile.locationsTitle")}
-          </h2>
-          <p className="account-section-intro">{t("profile.locationsIntro")}</p>
-          {saveError ? <p className="account-error" role="alert">{saveError}</p> : null}
-          <div className="profile-location-add">
-            <input
-              type="text"
-              className="account-input"
-              value={newLocation}
-              onChange={(e) => setNewLocation(e.target.value)}
-              placeholder={t("profile.locationPlaceholder")}
-              aria-label={t("profile.locationPlaceholder")}
-            />
-            <button type="button" className="account-btn account-btn--primary" onClick={addLocation}>
-              {t("profile.addLocation")}
-            </button>
-          </div>
-          {locations.length === 0 ? (
-            <p className="account-muted">{t("profile.locationsEmpty")}</p>
-          ) : (
-            <ul className="profile-location-list">
-              {locations.map((loc, i) => (
-                <li key={`${loc}-${i}`} className="profile-location-item">
-                  <span>{loc}</span>
-                  <button type="button" className="account-icon-btn" onClick={() => removeLocation(i)} aria-label={t("profile.removeLocation")}>
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {saveError ? <p className="account-error" role="alert">{saveError}</p> : null}
 
         <section className="account-section" aria-labelledby="profile-posts-heading">
           <h2 id="profile-posts-heading" className="account-section-title">
@@ -297,17 +453,118 @@ function Profile() {
               {posts.map((p) => (
                 <li key={p.id} className="profile-post-card">
                   <div className="profile-post-meta">
-                    <time dateTime={createdAtIso(p.createdAt)}>{formatCreatedAt(p.createdAt, locale)}</time>
-                    <span className="profile-post-motivation">{t(MOTIVATION_KEYS[p.motivation] ?? "post.motivation.know")}</span>
+                    <time dateTime={createdAtIso(p.createdAt)}>{formatNotificationRelative(p.createdAt, language)}</time>
+                    <span className="profile-post-motivation">{getMotivationLabel(p, t)}</span>
+                    <button
+                      type="button"
+                      className="account-btn account-btn--ghost profile-post-delete-btn"
+                      onClick={() => deletePostManually(p.id)}
+                      aria-label="刪除貼文"
+                    >
+                      ×
+                    </button>
                   </div>
-                  <p className="profile-post-snippet">{snippetFromDescription(p.description)}</p>
-                  {p.location?.lat != null && p.location?.lng != null ? (
-                    <p className="profile-post-coords">
-                      {p.location.lat.toFixed(4)}, {p.location.lng.toFixed(4)}
-                    </p>
+                  <p className="profile-post-snippet">{firstLineFromAppearance(p.description, t)}</p>
+                  <div className="profile-post-responses-summary">
+                    <span>{(postResponsesByPostId[p.id] || []).length} {t("profile.responsesCount")}</span>
+                    <button
+                      type="button"
+                      className="account-btn account-btn--outline profile-post-toggle-btn"
+                      onClick={() => setExpandedPostIds((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
+                    >
+                      {expandedPostIds[p.id] ? t("profile.hideResponses") : t("profile.showResponses")}
+                    </button>
+                  </div>
+                  {expandedPostIds[p.id] ? (
+                    <ul className="profile-post-response-list">
+                      {(postResponsesByPostId[p.id] || []).map((resp) => {
+                        const isPermanentlyClosed = String(resp.status || "") === "rejected" && Number(resp.attemptCount || 1) >= 2;
+                        const busyKey = `${p.id}:${resp.id}`;
+                        return (
+                          <li key={resp.id} className="profile-post-response-item">
+                            <div className="profile-post-response-answers">
+                              <p className="profile-post-response-name">
+                                {(resp.responderAnonymousName || "匿名夥伴")} 的回覆
+                              </p>
+                              <p>{Array.isArray(resp.answers) ? resp.answers[0] || "—" : "—"}</p>
+                              <p>{Array.isArray(resp.answers) ? resp.answers[1] || "—" : "—"}</p>
+                            </div>
+                            {isPermanentlyClosed ? (
+                              <p className="profile-post-response-closed">{t("profile.permanentlyClosed")}</p>
+                            ) : String(resp.status || "") === "accepted" ? (
+                              <>
+                                <p
+                                  className={
+                                    deletedChatsById[resp.chatId]
+                                      ? "profile-post-response-deleted"
+                                      : "profile-post-response-accepted"
+                                  }
+                                >
+                                  {deletedChatsById[resp.chatId]
+                                    ? t("profile.responseStatus.chatDeleted")
+                                    : t("profile.responseStatus.accepted")}
+                                </p>
+                              </>
+                            ) : (
+                              <div className="profile-post-response-actions">
+                                <button
+                                  type="button"
+                                  className="account-btn account-btn--primary profile-response-action-btn"
+                                  onClick={() => approveResponse(p.id, resp.id)}
+                                  disabled={!!responseActionBusy[busyKey]}
+                                >
+                                  {t("profile.acceptResponse")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="account-btn account-btn--ghost profile-response-action-btn profile-response-action-btn--reject"
+                                  onClick={() => rejectResponse(p.id, resp.id)}
+                                  disabled={!!responseActionBusy[busyKey]}
+                                >
+                                  {t("profile.rejectResponse")}
+                                </button>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   ) : null}
                 </li>
               ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="account-section" aria-labelledby="profile-replies-heading">
+          <h2 id="profile-replies-heading" className="account-section-title">
+            {t("profile.repliesTitle")}
+          </h2>
+          {repliedPostsError ? <p className="account-error" role="alert">{repliedPostsError}</p> : null}
+          {repliedPosts.length === 0 && !repliedPostsError ? (
+            <p className="account-muted">{t("profile.repliesEmpty")}</p>
+          ) : (
+            <ul className="profile-post-list">
+              {repliedPosts.map((row) => {
+                const responseKind = getResponseStatusKind(row.response);
+                const kind = responseKind === "accepted" && row.chatDeleted ? "chatDeleted" : responseKind;
+                return (
+                  <li key={row.path} className="profile-post-card">
+                    <div className="profile-response-meta">
+                      <div className="profile-response-meta-left">
+                        <span className={`profile-response-badge profile-response-badge--${kind}`}>{t(`profile.responseStatus.${kind}`)}</span>
+                      </div>
+                      <span className="profile-response-time">{formatNotificationRelative(row.response?.createdAt, language)}</span>
+                    </div>
+                    <p className="profile-post-snippet">{appearanceTitleFromPost(row.post, t)}</p>
+                    {kind === "retry" ? (
+                      <Link className="account-link-btn" to="/map">
+                        {t("profile.retryOnMap")}
+                      </Link>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -351,15 +608,6 @@ function Profile() {
       <Footer />
     </div>
   );
-}
-
-function snippetFromDescription(description) {
-  if (description == null) return "";
-  if (typeof description === "string") return description.slice(0, 160) + (description.length > 160 ? "…" : "");
-  const a = description.appearance || "";
-  const b = description.story || "";
-  const combined = [a, b].filter(Boolean).join(" · ");
-  return combined.slice(0, 160) + (combined.length > 160 ? "…" : "");
 }
 
 export default Profile;

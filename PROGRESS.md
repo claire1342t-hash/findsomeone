@@ -20,48 +20,44 @@
 - 地圖頁面：cluster 聚合、自訂 ping.png 圖釘、Bottom Sheet、左右分割細節視圖
 
 ### Day 3 (2026-04-29)
-post按鈕從hero移到homepage最下面
-關毅firebase用google登入的選項
-修正行動版layout中地圖頁面點開時，navbar與預覽視窗重疊的錯誤
-新增profile pic
-Ping icon — 大小變更
-「我就是那個人」後續流程 — 驗證問題頁面（/verify/:postId）
-變更成配合各種載具的頁面高度
-map貼文與細節地方的顯示大小改變
-logo換掉
-navbar大小變更
+- Post 按鈕從 Hero 移到首頁下方，首頁導引流程調整
+- 地圖頁面行動版重疊修正（Navbar 與預覽/Bottom Sheet）
+- Profile 頭貼功能完成（頭貼選單、儲存、樣式對齊）
+- 地圖與貼文細節視圖尺寸/版面調整（含 Ping icon 大小）
+- 驗證回覆流程擴充：回覆狀態、重試機制、封鎖狀態文案
+- 新增聊天室系統（聊天室列表 / 單一聊天室 / 訊息即時同步）
+- 聊天室刪除與貼文刪除串接（含聊天室已刪除狀態顯示）
+- Profile 新增「我回覆過的貼文」與回覆狀態標籤
+- 登入頁新增密碼顯示/隱藏切換與按鈕樣式優化
+- 發文頁驗證加強（必填檢查、空值防呆、動機自訂輸入）
+- 匿名名稱產生器調整（統一中文池、建立時固定名稱）
+- Firestore 規則與索引補強（responses/chats/messages 權限）
+- 語言切換與 i18n 文案大量更新（中/英/日同步）
+- Navbar 與 Profile/Chat 多處 UI hover 與互動細節優化
+
+### Day 4 (2026-04-30)
+- Email 通知（SendGrid）
+聊天室
+註銷或關閉貼文
+
 
 
 ## 🔧 待修正
-訂閱常去地點 — 功能要有實際意義，連結到通知系統
-註銷或關閉貼文
-訂閱常去地點功能要有實際意義
 通知系統（發文者收到「有人回覆」的通知）站內通知中心或 Email 通知
-聊天室
 About 頁面完成（品牌故事、功能介紹、作者介紹、聯絡信封）
-
 安全性（重要，上線前必須修）
 Firestore rules — 通知權限過寬，其他用戶可以 update 別人的通知，改成只允許 create
-ownedPosts — 客戶端可偽造 ownership，改用 posts.authorUid 做驗證依據
-responder 可竄改 response 的 status/attemptCount，加欄位限制
-功能 bug
+ownedPosts — 客戶端可偽造 ownership，改用 posts.authorUid 做驗證據
+responder 可竄改 response 的 status/attemptCount，加欄位限制功能 bug
 4. Map 驗證狀態只做一次 getDoc，改成 onSnapshot 即時同步
 5. 註冊時 displayName 時序競態，可能寫入錯誤名字
-6. 動機標籤顯示異常值時沒有 fallback
-資料驗證
+6. 動機標籤顯示異常值時沒有 fallback資料驗證
 7. 發文內容可全空字串送出，加最小長度驗證
-8. 訂閱地點無去重、無上限，加限制
-細節
+8. 訂閱地點無去重、無上限，加限制細節
 9. 可點擊元素 cursor: auto 改成 cursor: pointer
 10. SiteHeader 的 aria-label 硬編碼，補進 i18n
-
-## 📋 待開發
-- 驗證問題流程（/verify/:postId）
-- 聊天室
-- 站內通知中心
-- Email 通知（SendGrid）
 - About 頁面完成
-- 所有頁面翻譯補齊（英文 + 日文）
+噁男問題
 
 ## 🔗 連結
 - Vercel：https://findsomeone.vercel.app/

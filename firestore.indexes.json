@@ -1,4 +1,10 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "responses",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [{ "fieldPath": "responderUid", "order": "ASCENDING" }]
+    }
+  ],
   "fieldOverrides": []
 }

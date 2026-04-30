@@ -4,14 +4,16 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    function ownsPostById(postId) {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId)).data.authorUid == request.auth.uid;
+    }
 
     match /users/{userId} {
-      // Authenticated users can read/write their own profile document
       allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /users/{userId}/ownedPosts/{postId} {
-      // Keep owner index writable by owner; readable by authenticated users for lookups
       allow read: if isSignedIn();
       allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
     }
@@ -26,10 +28,10 @@ service cloud.firestore {
 
       allow read: if true;
 
-      // Authenticated users can create posts
       allow create: if isSignedIn()
         && !(request.resource.data.keys().hasAll(["uid"]))
         && request.resource.data.keys().hasAll([
+          "authorUid",
           "authorPublicId",
           "claimToken",
           "location",
@@ -39,37 +41,96 @@ service cloud.firestore {
           "questions",
           "createdAt",
         ])
-        // Post and ownedPosts are written in the same batch from Post.jsx,
-        // so we must use getAfter() to read the sibling doc in this write.
+        && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.claimToken == ownedPostsLinkAfter().data.claimToken
         && ownedPostsLinkAfter().data.authorUid == request.auth.uid;
 
-      // Post authors can update/delete their own posts
       allow update, delete: if isSignedIn()
         && resource.data.claimToken == ownedPostsLink().data.claimToken
         && ownedPostsLink().data.authorUid == request.auth.uid;
 
       match /responses/{responseUserId} {
-        // Any authenticated user can create responses under any post.
-        // response doc id is expected to be responder uid in Map.jsx.
-        allow create, update: if isSignedIn()
-          && request.auth.uid == responseUserId;
+        allow create: if isSignedIn()
+          && request.auth.uid == responseUserId
+          && request.resource.data.responderUid == responseUserId
+          && request.auth.uid != get(/databases/$(database)/documents/posts/$(postId)).data.authorUid;
 
-        // Responder can read their own response; post author can read responses on own post.
+        allow update: if isSignedIn()
+          && request.auth.uid == responseUserId
+          && request.resource.data.responderUid == responseUserId
+          && request.auth.uid != get(/databases/$(database)/documents/posts/$(postId)).data.authorUid;
+
+        allow update: if isSignedIn()
+          && ownsPostById(postId);
+
+        allow delete: if isSignedIn()
+          && ownsPostById(postId);
+
         allow read: if isSignedIn() && (
+          request.auth.uid == resource.data.responderUid ||
           request.auth.uid == responseUserId ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId)).data.authorUid == request.auth.uid
+          ownsPostById(postId)
         );
       }
     }
 
-    match /notifications/{userId}/items/{notificationId} {
-      // Users can read/write their own notifications.
-      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+    match /chats/{chatId} {
+      allow create: if isSignedIn()
+        && request.resource.data.posterUid == request.auth.uid
+        && request.resource.data.participants is list
+        && request.resource.data.participants.hasAll([request.auth.uid])
+        && request.resource.data.participants.size() == 2;
 
-      // Any authenticated user can write to any user's notifications
-      // (used for notification delivery to the post author).
-      allow create, update: if isSignedIn();
+      allow read, delete: if isSignedIn()
+        && (
+          (
+            resource.data.participants is list
+            && resource.data.participants.hasAny([request.auth.uid])
+          ) ||
+          request.auth.uid == resource.data.posterUid ||
+          request.auth.uid == resource.data.responderUid ||
+          (
+            resource.data.postId is string
+            && ownsPostById(resource.data.postId)
+          )
+        );
+
+      allow update: if isSignedIn() && (
+        (
+          resource.data.participants is list
+          && resource.data.participants.hasAny([request.auth.uid])
+        ) ||
+        (
+          request.resource.data.posterUid == request.auth.uid
+          && request.resource.data.participants is list
+          && request.resource.data.participants.hasAll([request.auth.uid])
+          && request.resource.data.participants.size() == 2
+        )
+      );
+
+      match /messages/{messageId} {
+        allow create: if isSignedIn()
+          && (
+            get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) ||
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.posterUid ||
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.responderUid ||
+            (
+              get(/databases/$(database)/documents/chats/$(chatId)).data.postId is string
+              && ownsPostById(get(/databases/$(database)/documents/chats/$(chatId)).data.postId)
+            )
+          );
+
+        allow read, delete: if isSignedIn()
+          && (
+            get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) ||
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.posterUid ||
+            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.responderUid ||
+            (
+              get(/databases/$(database)/documents/chats/$(chatId)).data.postId is string
+              && ownsPostById(get(/databases/$(database)/documents/chats/$(chatId)).data.postId)
+            )
+          );
+      }
     }
   }
 }

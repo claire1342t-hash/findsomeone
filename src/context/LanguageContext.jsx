@@ -16,8 +16,22 @@ const HTML_LANG = {
   ja: "ja",
 };
 
+const DEFAULT_LANGUAGE = "zh";
+const LANGUAGE_STORAGE_KEY = "findsomeone:language";
+
+function normalizeLanguage(value) {
+  return value === "en" || value === "ja" || value === "zh" ? value : DEFAULT_LANGUAGE;
+}
+
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState("zh");
+  const [language, setLanguageState] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_LANGUAGE;
+    return normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+  });
+
+  const setLanguage = useCallback((nextLanguage) => {
+    setLanguageState(normalizeLanguage(nextLanguage));
+  }, []);
 
   const t = useCallback(
     (key) => {
@@ -35,13 +49,18 @@ export function LanguageProvider({ children }) {
     document.documentElement.lang = HTML_LANG[language] ?? "zh-Hant";
   }, [language]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  }, [language]);
+
   const value = useMemo(
     () => ({
       language,
       setLanguage,
       t,
     }),
-    [language, t],
+    [language, setLanguage, t],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

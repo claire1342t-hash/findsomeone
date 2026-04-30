@@ -161,7 +161,7 @@
 }
 
 .post-hint {
-  margin: 12px 0 0;
+  margin: 10px 0 14px;
   font-size: 13px;
   color: var(--muted);
   line-height: 1.55;

@@ -1,0 +1,106 @@
+.chat-list-page {
+  min-height: 100vh;
+}
+
+.chat-list-main {
+  width: min(760px, 100%);
+  margin: 20px auto 0;
+  padding: 0 14px 30px;
+}
+
+.chat-list-title {
+  margin: 0 0 14px;
+  font-family: "Noto Serif TC", serif;
+  font-size: 28px;
+}
+
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-list-item {
+  --chat-hover-bg: #f3f3f3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.chat-list-item:hover {
+  background: var(--chat-hover-bg);
+  border-color: #cfcfcf;
+  transform: translateY(-1px);
+}
+
+.chat-list-item__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #efefef;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.chat-list-item__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-list-item__name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.chat-list-item__preview {
+  margin: 4px 0 0;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.chat-list-item__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.chat-list-item__time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-list-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e53935;
+}
+
+.chat-list-empty {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+  text-align: center;
+}
+
+.chat-list-empty p {
+  margin: 0 0 8px;
+}
+
+.chat-list-empty a {
+  color: #2e4e9d;
+}

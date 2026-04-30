@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import profileImg from "../assets/illustrations/profile.png";
 import { SUPPORTED_LANGUAGES, useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -18,7 +18,6 @@ export function SiteHeader() {
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
   const [avatarId, setAvatarId] = useState(1);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const profileHref = user ? "/profile" : "/login";
   const profileAria = user ? t("meta.profileAriaUser") : t("meta.profileAriaGuest");
   const avatarSrc = user ? getAvatarById(avatarId) : profileImg;
@@ -29,17 +28,6 @@ export function SiteHeader() {
     return onSnapshot(ref, (snap) => {
       const id = Number(snap.data()?.avatarId);
       setAvatarId(id >= 1 && id <= 12 ? id : 1);
-    });
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) {
-      setHasUnreadNotifications(false);
-      return undefined;
-    }
-    const q = query(collection(db, "notifications", user.uid, "items"), where("read", "==", false));
-    return onSnapshot(q, (snap) => {
-      setHasUnreadNotifications(!snap.empty);
     });
   }, [user]);
 
@@ -77,7 +65,6 @@ export function SiteHeader() {
         </div>
         <Link className="avatar-button" to={profileHref} aria-label={profileAria}>
           <img src={avatarSrc} alt={profileAria} />
-          {hasUnreadNotifications ? <span className="avatar-button__dot" aria-hidden="true" /> : null}
         </Link>
       </div>
     </header>

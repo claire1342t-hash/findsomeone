@@ -51,6 +51,7 @@ function Login() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -119,16 +120,26 @@ function Login() {
               <label className="account-label" htmlFor="login-password">
                 {t("login.password")}
               </label>
-              <input
-                id="login-password"
-                type="password"
-                className="account-input"
-                value={password}
-                onChange={(ev) => setPassword(ev.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
-              />
+              <div className="account-password-wrap">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  className="account-input account-input--password"
+                  value={password}
+                  onChange={(ev) => setPassword(ev.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                />
+                <button
+                  type="button"
+                  className="account-password-toggle"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "隱藏密碼" : "顯示密碼"}
+                >
+                  {showPassword ? "隱藏" : "顯示"}
+                </button>
+              </div>
             </div>
             {error ? <p className="account-error" role="alert">{error}</p> : null}
             <button type="submit" className="account-btn account-btn--primary" disabled={busy || loading}>

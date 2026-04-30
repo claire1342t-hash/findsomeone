@@ -7,22 +7,20 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import {
   collection,
-  collectionGroup,
   doc,
   getDoc,
-  getDocs,
-  limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { generateAnonymousName } from "../utils/generateAnonymousName.js";
+import { deletePostCascade, isPostExpired } from "../utils/postLifecycle.js";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.png";
@@ -62,6 +60,13 @@ function formatDate(createdAt, language) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function getMotivationText(post, t) {
+  if (post?.motivation === "custom") {
+    return post?.motivationCustom || t("post.motivation.custom");
+  }
+  return t(`post.motivation.${post?.motivation || "know"}`);
 }
 
 function ClusterLayer({ posts, onClusterPick }) {
@@ -141,11 +146,29 @@ function MapPage() {
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
-      setPosts(snap.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() })));
+      const activePosts = [];
+      const expiredPostIds = [];
+      snap.docs.forEach((docItem) => {
+        const data = docItem.data();
+        if (isPostExpired(data.createdAt)) {
+          expiredPostIds.push(docItem.id);
+          return;
+        }
+        activePosts.push({ id: docItem.id, ...data });
+      });
+      setPosts(activePosts);
+      if (user && expiredPostIds.length > 0) {
+        expiredPostIds.forEach((postId) => {
+          deletePostCascade(postId, user.uid).catch(() => {
+            // ignore permission failures for non-owner users
+          });
+        });
+      }
     });
-  }, []);
+  }, [user]);
 
   const selectedPost = clusterPosts.find((item) => item.id === selectedPostId) ?? null;
+  const isOwnPost = !!user && !!selectedPost && selectedPost.authorUid === user.uid;
 
   const closePanel = () => {
     setClusterPosts([]);
@@ -212,20 +235,12 @@ function MapPage() {
     };
   }, [verifyOpen, selectedPost, user]);
 
-  const resolvePosterUid = async (post) => {
-    if (typeof post?.authorUid === "string" && post.authorUid) return post.authorUid;
-    if (!post?.claimToken) return null;
-    const q = query(collectionGroup(db, "ownedPosts"), where("claimToken", "==", post.claimToken), limit(1));
-    const snap = await getDocs(q);
-    const row = snap.docs[0];
-    if (!row) return null;
-    const fromData = row.data()?.authorUid;
-    if (typeof fromData === "string" && fromData) return fromData;
-    return row.ref.parent.parent?.id ?? null;
-  };
-
   const submitVerification = async () => {
     if (!selectedPost || !user || verifyBusy || verifySubmitted || verifyLocked) return;
+    if (isOwnPost) {
+      setVerifyError(t("map.verifyOwnPost"));
+      return;
+    }
     const trimmed1 = answer1.trim();
     const trimmed2 = answer2.trim();
     if (!trimmed1 || !trimmed2) {
@@ -240,6 +255,7 @@ function MapPage() {
       const existing = existingSnap.exists() ? existingSnap.data() : null;
       const status = String(existing?.status || "");
       const attemptCount = Number(existing?.attemptCount || 1);
+      const responderAnonymousName = existing?.responderAnonymousName || generateAnonymousName(language);
 
       if (status === "rejected" && attemptCount >= 2) {
         setVerifyLocked(true);
@@ -251,6 +267,8 @@ function MapPage() {
       await setDoc(
         responseRef,
         {
+          responderUid: user.uid,
+          responderAnonymousName,
           answers: [trimmed1, trimmed2],
           createdAt: serverTimestamp(),
           status: "pending",
@@ -258,18 +276,6 @@ function MapPage() {
         },
         { merge: true },
       );
-
-      const posterUid = await resolvePosterUid(selectedPost);
-      if (posterUid) {
-        const notificationRef = doc(collection(db, "notifications", posterUid, "items"));
-        await setDoc(notificationRef, {
-          type: "new_response",
-          postId: selectedPost.id,
-          createdAt: serverTimestamp(),
-          read: false,
-          message: t("map.verifyPosterNotification"),
-        });
-      }
 
       setVerifySubmitted(true);
       setPreviousRejectedOnce(false);
@@ -342,7 +348,7 @@ function MapPage() {
               <p className="map-detail__text">{selectedPost.description?.appearance || t("map.postFallbackAppearance")}</p>
               <p className="map-detail__text">{selectedPost.description?.story || t("map.postFallbackStory")}</p>
               <div className="map-detail__tags">
-                <span className="map-detail__tag">{t(`post.motivation.${selectedPost.motivation}`)}</span>
+                <span className="map-detail__tag">{getMotivationText(selectedPost, t)}</span>
               </div>
               <p className="map-detail__sub">
                 <strong>{t("map.locationLabel")}：</strong>
@@ -352,13 +358,20 @@ function MapPage() {
                 <strong>{t("map.dateLabel")}：</strong>
                 {formatDate(selectedPost.createdAt, language)}
               </p>
-              <button type="button" className="map-detail__cta" onClick={() => setVerifyOpen((prev) => !prev)}>
+              <button
+                type="button"
+                className="map-detail__cta"
+                onClick={() => setVerifyOpen((prev) => !prev)}
+                disabled={isOwnPost}
+              >
                 {t("map.cta")}
               </button>
               <section className={`map-verify ${verifyOpen ? "is-open" : ""}`} aria-hidden={!verifyOpen}>
                 {verifyOpen ? (
                   verifyLocked ? (
                     <p className="map-verify__message map-verify__message--error">{t("map.verifyLocked")}</p>
+                  ) : isOwnPost ? (
+                    <p className="map-verify__message map-verify__message--error">{t("map.verifyOwnPost")}</p>
                   ) : !user ? (
                     <p className="map-verify__message">{t("map.verifyLoginRequired")}</p>
                   ) : verifySubmitted ? (

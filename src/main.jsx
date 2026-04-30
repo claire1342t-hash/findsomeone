@@ -10,20 +10,30 @@ import Post from "./pages/Post.jsx";
 import MapPage from "./pages/Map.jsx";
 import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
+import ChatPage from "./pages/Chat.jsx";
+import ChatListPage from "./pages/ChatList.jsx";
 
-function PlaceholderPage({ title }) {
-  return (
-    <main className="home-main">
-      <section className="hero-section">
-        <div className="hero-copy">
-          <h1>{title}</h1>
-        </div>
-      </section>
-    </main>
-  );
+const ROOT_KEY = "__findsomeone_app_root__";
+
+const aboutPlaceholderElement = (
+  <main className="home-main">
+    <section className="hero-section">
+      <div className="hero-copy">
+        <h1>About page coming soon</h1>
+      </div>
+    </section>
+  </main>
+);
+
+const container = document.getElementById("root");
+if (!container) {
+  throw new Error("Root container #root not found");
 }
 
-createRoot(document.getElementById("root")).render(
+const root = globalThis[ROOT_KEY] || createRoot(container);
+globalThis[ROOT_KEY] = root;
+
+root.render(
   <StrictMode>
     <LanguageProvider>
       <BrowserRouter>
@@ -34,8 +44,9 @@ createRoot(document.getElementById("root")).render(
             <Route path="/map" element={<MapPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/about" element={<PlaceholderPage title="About page coming soon" />} />
-            <Route path="/chat" element={<PlaceholderPage title="Chat page coming soon" />} />
+            <Route path="/about" element={aboutPlaceholderElement} />
+            <Route path="/chat" element={<ChatListPage />} />
+            <Route path="/chat/:chatId" element={<ChatPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

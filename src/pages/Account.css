@@ -48,7 +48,6 @@
 }
 
 .account-btn--primary:hover {
-  transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
 }
 
@@ -103,6 +102,27 @@
 .account-input:focus {
   outline: 2px solid #c9c9c9;
   outline-offset: 1px;
+}
+
+.account-password-wrap {
+  position: relative;
+}
+
+.account-input--password {
+  padding-right: 44px;
+}
+
+.account-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  font-size: 15px;
+  cursor: pointer;
 }
 
 .account-error {
@@ -176,7 +196,7 @@
 .profile-hero {
   display: flex;
   gap: 20px;
-  align-items: flex-start;
+  align-items: center;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--card);
@@ -232,89 +252,6 @@
   gap: 10px;
 }
 
-.profile-location-add {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-@media (min-width: 480px) {
-  .profile-location-add {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .profile-location-add .account-input {
-    flex: 1;
-  }
-
-  .profile-location-add .account-btn {
-    width: auto;
-    flex-shrink: 0;
-    align-self: center;
-  }
-}
-
-.profile-location-list {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.profile-notification-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.profile-notification-item {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fafafa;
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  text-align: left;
-  cursor: auto;
-}
-
-.profile-notification-item.is-unread {
-  background: #f2f6ff;
-}
-
-.profile-notification-message {
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.profile-notification-time {
-  color: var(--muted);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.profile-location-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fafafa;
-  font-size: 15px;
-}
-
 .account-icon-btn {
   border: 0;
   background: transparent;
@@ -354,11 +291,28 @@
   font-size: 12px;
   color: var(--muted);
   margin-bottom: 8px;
+  align-items: center;
 }
 
 .profile-post-motivation {
   font-weight: 600;
   color: #4a4a4a;
+}
+
+.profile-post-delete-btn {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profile-post-delete-btn:hover {
+  background: #D32F2F;
+  color: #ffffff;
 }
 
 .profile-post-snippet {
@@ -372,6 +326,175 @@
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+.profile-post-responses-summary {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.profile-post-toggle-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.profile-post-toggle-btn:hover {
+  background: #1f1f21;
+  border-color: #1f1f21;
+  color: #fff;
+}
+
+.profile-actions .account-btn--outline:hover {
+  background: #1f1f21;
+  border-color: #1f1f21;
+  color: #fff;
+}
+
+.profile-actions .account-btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.profile-actions .account-btn--ghost:hover {
+  background: #1f1f21;
+  border-color: #1f1f21;
+  color: #fff;
+}
+
+.profile-post-response-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-post-response-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.profile-post-response-answers p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.profile-post-response-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.profile-post-response-answers p + p {
+  margin-top: 4px;
+}
+
+.profile-post-response-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-response-action-btn {
+  width: 100%;
+}
+
+.profile-response-action-btn--reject {
+  background: #f2f2f2;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.profile-post-response-closed {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #9b2335;
+}
+
+.profile-post-response-accepted {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #1b5e20;
+}
+
+.profile-post-response-deleted {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #b71c1c;
+}
+
+.profile-response-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.profile-response-meta-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-response-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.profile-response-badge--pending {
+  background: #ececec;
+  color: #555;
+  border-color: #d5d5d5;
+}
+
+.profile-response-badge--retry {
+  background: #fff8e6;
+  color: #7a5a00;
+  border-color: #e6c65c;
+}
+
+.profile-response-badge--closed {
+  background: #ffebee;
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+.profile-response-badge--accepted {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #a5d6a7;
+}
+
+.profile-response-badge--chatDeleted {
+  background: #ffebee;
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+.profile-response-time {
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 .profile-picture-grid {
@@ -447,11 +570,13 @@
   margin-top: 14px;
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .profile-picture-modal__actions .account-btn {
   width: auto;
   min-width: 112px;
+  height: 50px;
 }
 
 .post-auth-banner {

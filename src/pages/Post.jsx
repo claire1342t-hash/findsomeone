@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -39,11 +39,16 @@ function MapClickHandler({ onPick }) {
 function Post() {
   const { t } = useLanguage();
   const { user } = useAuth();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [pin, setPin] = useState(null);
   const [locationDescription, setLocationDescription] = useState("");
   const [appearance, setAppearance] = useState("");
   const [story, setStory] = useState("");
   const [motivation, setMotivation] = useState("know");
+  const [customMotivation, setCustomMotivation] = useState("");
   const [question1, setQuestion1] = useState("");
   const [question2, setQuestion2] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -75,6 +80,19 @@ function Post() {
       setSubmitError(t("post.errorLocationDescription"));
       return;
     }
+    const trimmedAppearance = appearance.trim();
+    const trimmedStory = story.trim();
+    const trimmedCustomMotivation = customMotivation.trim();
+    const trimmedQuestion1 = question1.trim();
+    const trimmedQuestion2 = question2.trim();
+    if (!trimmedAppearance || !trimmedStory || !trimmedQuestion1 || !trimmedQuestion2) {
+      setSubmitError(t("post.errorRequiredFields"));
+      return;
+    }
+    if (motivation === "custom" && !trimmedCustomMotivation) {
+      setSubmitError(t("post.errorCustomMotivation"));
+      return;
+    }
     setSubmitBusy(true);
     try {
       const postRef = doc(collection(db, "posts"));
@@ -88,12 +106,14 @@ function Post() {
       });
       batch.set(postRef, {
         authorPublicId,
+        authorUid: user.uid,
         claimToken,
         location: { lat: pin[0], lng: pin[1] },
         locationDescription: trimmedLocationDescription,
-        description: { appearance, story },
+        description: { appearance: trimmedAppearance, story: trimmedStory },
         motivation,
-        questions: [question1.trim(), question2.trim()],
+        motivationCustom: motivation === "custom" ? trimmedCustomMotivation : "",
+        questions: [trimmedQuestion1, trimmedQuestion2],
         createdAt: serverTimestamp(),
       });
       await batch.commit();
@@ -103,6 +123,7 @@ function Post() {
       setAppearance("");
       setStory("");
       setMotivation("know");
+      setCustomMotivation("");
       setQuestion1("");
       setQuestion2("");
     } catch (e) {
@@ -176,6 +197,7 @@ function Post() {
                 value={appearance}
                 onChange={(e) => setAppearance(e.target.value)}
                 placeholder={t("post.appearance.ph")}
+                required
               />
             </div>
             <div className="post-field">
@@ -188,6 +210,7 @@ function Post() {
                 value={story}
                 onChange={(e) => setStory(e.target.value)}
                 placeholder={t("post.story.ph")}
+                required
               />
             </div>
           </section>
@@ -225,11 +248,38 @@ function Post() {
                 />
                 <span className="post-radio-text">{t("post.motivation.noticed")}</span>
               </label>
+              <label className="post-radio-card">
+                <input
+                  type="radio"
+                  name="motivation"
+                  value="custom"
+                  checked={motivation === "custom"}
+                  onChange={() => setMotivation("custom")}
+                />
+                <span className="post-radio-text">{t("post.motivation.custom")}</span>
+              </label>
             </div>
+            {motivation === "custom" ? (
+              <div className="post-field post-field--custom-motivation">
+                <label className="post-label" htmlFor="custom-motivation">
+                  {t("post.motivation.customLabel")}
+                </label>
+                <input
+                  id="custom-motivation"
+                  type="text"
+                  className="post-input"
+                  value={customMotivation}
+                  onChange={(e) => setCustomMotivation(e.target.value)}
+                  placeholder={t("post.motivation.customPh")}
+                  required
+                />
+              </div>
+            ) : null}
           </section>
 
           <section className="post-section" aria-labelledby="post-verify-heading">
             <h2 id="post-verify-heading">{t("post.verify.heading")}</h2>
+            <p className="post-hint">{t("post.verify.hint")}</p>
             <div className="post-field">
               <label className="post-label" htmlFor="q1">
                 {t("post.q1.label")}
@@ -241,6 +291,7 @@ function Post() {
                 value={question1}
                 onChange={(e) => setQuestion1(e.target.value)}
                 placeholder={t("post.q1.ph")}
+                required
               />
             </div>
             <div className="post-field">
@@ -254,9 +305,9 @@ function Post() {
                 value={question2}
                 onChange={(e) => setQuestion2(e.target.value)}
                 placeholder={t("post.q2.ph")}
+                required
               />
             </div>
-            <p className="post-hint">{t("post.verify.hint")}</p>
           </section>
 
           <div className="post-actions">
