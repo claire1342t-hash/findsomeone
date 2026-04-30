@@ -75,13 +75,6 @@ function firstLineFromAppearance(description, t) {
   return firstLine || t("map.postFallbackAppearance");
 }
 
-function getMotivationLabel(post, t) {
-  if (post?.motivation === "custom") {
-    return post?.motivationCustom || t("post.motivation.custom");
-  }
-  return t(MOTIVATION_KEYS[post?.motivation] ?? "post.motivation.know");
-}
-
 function Profile() {
   const { t, language } = useLanguage();
   const { user, loading, signOut } = useAuth();

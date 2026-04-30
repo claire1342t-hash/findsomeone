@@ -47,6 +47,7 @@ export default function ChatPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [expired, setExpired] = useState(false);
   const messagesBottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   const senderRole = useMemo(() => {
     if (!user || !chat) return null;
@@ -132,6 +133,10 @@ export default function ChatPage() {
         { merge: true },
       );
       setText("");
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        messagesBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
     } catch (err) {
       console.error(err);
     }
@@ -202,6 +207,7 @@ export default function ChatPage() {
 
             <footer className="chat-input-row">
               <input
+                ref={inputRef}
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
