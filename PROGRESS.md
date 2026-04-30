@@ -20,6 +20,18 @@
 - 地圖頁面：cluster 聚合、自訂 ping.png 圖釘、Bottom Sheet、左右分割細節視圖
 
 ### Day 3 (2026-04-29)
+post按鈕從hero移到homepage最下面
+關毅firebase用google登入的選項
+修正行動版layout中地圖頁面點開時，navbar與預覽視窗重疊的錯誤
+新增profile pic
+Ping icon — 大小變更
+「我就是那個人」後續流程 — 驗證問題頁面（/verify/:postId）
+變更成配合各種載具的頁面高度
+map貼文與細節地方的顯示大小改變
+logo換掉
+navbar大小變更
+
+### Day 4 (2026-04-30)
 - Post 按鈕從 Hero 移到首頁下方，首頁導引流程調整
 - 地圖頁面行動版重疊修正（Navbar 與預覽/Bottom Sheet）
 - Profile 頭貼功能完成（頭貼選單、儲存、樣式對齊）
@@ -34,11 +46,6 @@
 - Firestore 規則與索引補強（responses/chats/messages 權限）
 - 語言切換與 i18n 文案大量更新（中/英/日同步）
 - Navbar 與 Profile/Chat 多處 UI hover 與互動細節優化
-
-### Day 4 (2026-04-30)
-- Email 通知（SendGrid）
-聊天室
-註銷或關閉貼文
 
 
 

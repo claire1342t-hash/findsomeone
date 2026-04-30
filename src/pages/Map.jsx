@@ -388,7 +388,6 @@ function MapPage() {
                           className="map-verify__input"
                           value={answer1}
                           onChange={(e) => setAnswer1(e.target.value)}
-                          placeholder={t("post.q1.ph")}
                         />
                       </label>
                       <label className="map-verify__label">
@@ -398,7 +397,6 @@ function MapPage() {
                           className="map-verify__input"
                           value={answer2}
                           onChange={(e) => setAnswer2(e.target.value)}
-                          placeholder={t("post.q2.ph")}
                         />
                       </label>
                       {verifyError ? <p className="map-verify__message map-verify__message--error">{verifyError}</p> : null}
