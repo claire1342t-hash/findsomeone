@@ -4,7 +4,7 @@
 
 .chat-main {
   width: min(820px, 100%);
-  margin: 20px auto 0;
+  margin: 5px auto 0;
   padding: 0 16px 28px;
 }
 
@@ -187,4 +187,13 @@
 
 .chat-back-link:hover {
   transform: translateY(-1px);
+}
+
+@media (max-width: 730px) {
+  .chat-page .lang-switcher {
+    display: none;
+  }
+  .chat-page .avatar-button {
+    display: none;
+  }
 }
