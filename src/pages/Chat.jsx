@@ -15,18 +15,19 @@ import {
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import "./Chat.css";
 
-function formatRelativeTime(value) {
+function formatRelativeTime(value, language) {
   if (!value?.toDate) return "";
   const diffMs = Math.max(0, Date.now() - value.toDate().getTime());
   const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "剛剛";
-  if (min < 60) return `${min}分鐘前`;
+  if (min < 1) return language === "en" ? "Just now" : language === "ja" ? "たった今" : "剛剛";
+  if (min < 60) return language === "en" ? `${min}m ago` : language === "ja" ? `${min}分前` : `${min}分鐘前`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}小時前`;
+  if (hr < 24) return language === "en" ? `${hr}h ago` : language === "ja" ? `${hr}時間前` : `${hr}小時前`;
   const day = Math.floor(hr / 24);
-  return `${day}天前`;
+  return language === "en" ? `${day}d ago` : language === "ja" ? `${day}日前` : `${day}天前`;
 }
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
@@ -36,6 +37,7 @@ function toMillis(value) {
 }
 
 export default function ChatPage() {
+  const { t, language } = useLanguage();
   const { chatId } = useParams();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -136,7 +138,7 @@ export default function ChatPage() {
   };
 
   const endChat = async () => {
-    const ok = window.confirm("按下後聊天室將立即刪除，所有訊息無法復原，請三思。");
+    const ok = window.confirm(t("chat.endWarning"));
     if (!ok || !chatId) return;
     try {
       await deleteChatCompletely(chatId);
@@ -153,13 +155,13 @@ export default function ChatPage() {
       <SiteHeader />
       <main className="chat-main">
         {expired ? (
-          <div className="chat-ended">此聊天室已結束</div>
+          <div className="chat-ended">{t("chat.ended")}</div>
         ) : !chat ? (
-          <div className="chat-ended">聊天室不存在</div>
+          <div className="chat-ended">{t("chat.notFound")}</div>
         ) : (
           <section className="chat-card">
             <header className="chat-card__header">
-              <h1>{partnerName || "匿名夥伴"}</h1>
+              <h1>{partnerName || t("chat.anonymousPartner")}</h1>
               <div className="chat-menu-wrap">
                 <button type="button" className="chat-menu-btn" onClick={() => setMenuOpen((v) => !v)}>
                   ⋯
@@ -167,9 +169,9 @@ export default function ChatPage() {
                 {menuOpen ? (
                   <div className="chat-menu">
                     <button type="button" className="chat-end-btn" onClick={endChat}>
-                      結束聊天
+                      {t("chat.endButton")}
                     </button>
-                    <p>按下後聊天室將立即刪除，所有訊息無法復原，請三思。</p>
+                    <p>{t("chat.endWarning")}</p>
                   </div>
                 ) : null}
               </div>
@@ -191,7 +193,7 @@ export default function ChatPage() {
                 return (
                   <article key={msg.id} className={`chat-msg ${mine ? "is-mine" : "is-their"}`}>
                     <div className="chat-msg__bubble">{msg.text}</div>
-                    {shouldShowTime ? <div className="chat-msg__time">{formatRelativeTime(msg.createdAt)}</div> : null}
+                    {shouldShowTime ? <div className="chat-msg__time">{formatRelativeTime(msg.createdAt, language)}</div> : null}
                   </article>
                 );
               })}
@@ -203,7 +205,7 @@ export default function ChatPage() {
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="輸入訊息..."
+                placeholder={t("chat.inputPlaceholder")}
               />
               <button type="button" onClick={sendMessage}>
                 ➤
@@ -212,7 +214,7 @@ export default function ChatPage() {
           </section>
         )}
         <Link className="chat-back-link" to="/profile">
-          返回個人頁
+          {t("chat.backToProfile")}
         </Link>
       </main>
     </div>

@@ -206,7 +206,7 @@ function Profile() {
             });
             setRepliedPosts(enriched);
             setRepliedPostsError("");
-          } catch (err) {
+          } catch {
             if (!cancelled) {
               setRepliedPosts([]);
               setRepliedPostsError("");
@@ -377,7 +377,7 @@ function Profile() {
 
   const rejectResponse = async (postId, responseUserId) => {
     if (!user) return;
-    const confirmed = window.confirm("確定要標記為認錯了嗎？對方將收到通知。");
+    const confirmed = window.confirm(t("profile.confirmReject"));
     if (!confirmed) return;
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
@@ -395,7 +395,7 @@ function Profile() {
   };
 
   const deletePostManually = async (postId) => {
-    const ok = window.confirm("確定要刪除這篇貼文？所有回覆與聊天室會一併刪除。");
+    const ok = window.confirm(t("profile.confirmDeletePost"));
     if (!ok || !user) return;
     try {
       await deletePostCascade(postId, user.uid);
@@ -454,12 +454,11 @@ function Profile() {
                 <li key={p.id} className="profile-post-card">
                   <div className="profile-post-meta">
                     <time dateTime={createdAtIso(p.createdAt)}>{formatNotificationRelative(p.createdAt, language)}</time>
-                    <span className="profile-post-motivation">{getMotivationLabel(p, t)}</span>
                     <button
                       type="button"
                       className="account-btn account-btn--ghost profile-post-delete-btn"
                       onClick={() => deletePostManually(p.id)}
-                      aria-label="刪除貼文"
+                      aria-label={t("profile.deletePostAria")}
                     >
                       ×
                     </button>
@@ -484,10 +483,17 @@ function Profile() {
                           <li key={resp.id} className="profile-post-response-item">
                             <div className="profile-post-response-answers">
                               <p className="profile-post-response-name">
-                                {(resp.responderAnonymousName || "匿名夥伴")} 的回覆
+                                {(resp.responderAnonymousName || t("profile.anonymousPartner"))}
+                                {t("profile.responseSuffix")}
                               </p>
-                              <p>{Array.isArray(resp.answers) ? resp.answers[0] || "—" : "—"}</p>
-                              <p>{Array.isArray(resp.answers) ? resp.answers[1] || "—" : "—"}</p>
+                              <p>
+                                <strong>{p.questions?.[0] || t("post.q1.label")}：</strong>
+                                {Array.isArray(resp.answers) ? resp.answers[0] || "—" : "—"}
+                              </p>
+                              <p>
+                                <strong>{p.questions?.[1] || t("post.q2.label")}：</strong>
+                                {Array.isArray(resp.answers) ? resp.answers[1] || "—" : "—"}
+                              </p>
                             </div>
                             {isPermanentlyClosed ? (
                               <p className="profile-post-response-closed">{t("profile.permanentlyClosed")}</p>

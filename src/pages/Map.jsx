@@ -345,19 +345,29 @@ function MapPage() {
           {selectedPost ? (
             <aside className="map-sheet__right">
               <h2 className="map-detail__title">{getAppearanceTitle(selectedPost, t)}</h2>
-              <p className="map-detail__text">{selectedPost.description?.appearance || t("map.postFallbackAppearance")}</p>
-              <p className="map-detail__text">{selectedPost.description?.story || t("map.postFallbackStory")}</p>
-              <div className="map-detail__tags">
-                <span className="map-detail__tag">{getMotivationText(selectedPost, t)}</span>
+              <div className="map-detail__title-divider" aria-hidden="true" />
+              <div className="map-detail__section map-detail__section--plain">
+                <p className="map-detail__story-label">{t("map.storyLabel")}</p>
+                <p className="map-detail__text">{selectedPost.description?.story || t("map.postFallbackStory")}</p>
               </div>
-              <p className="map-detail__sub">
-                <strong>{t("map.locationLabel")}：</strong>
-                {selectedPost.locationDescription || t("map.locationFallback")}
-              </p>
-              <p className="map-detail__sub">
-                <strong>{t("map.dateLabel")}：</strong>
-                {formatDate(selectedPost.createdAt, language)}
-              </p>
+              <div className="map-detail__short-divider" aria-hidden="true" />
+              <div className="map-detail__section map-detail__section--plain">
+                <p className="map-detail__inline-row">
+                  <strong>{t("map.motivationLabel")}：</strong>
+                  <span>{getMotivationText(selectedPost, t)}</span>
+                </p>
+              </div>
+              <div className="map-detail__short-divider" aria-hidden="true" />
+              <div className="map-detail__section map-detail__section--plain">
+                <p className="map-detail__sub">
+                  <strong>{t("map.locationLabel")}：</strong>
+                  {selectedPost.locationDescription || t("map.locationFallback")}
+                </p>
+                <p className="map-detail__sub">
+                  <strong>{t("map.dateLabel")}：</strong>
+                  {formatDate(selectedPost.createdAt, language)}
+                </p>
+              </div>
               <button
                 type="button"
                 className="map-detail__cta"
@@ -378,6 +388,7 @@ function MapPage() {
                     <p className="map-verify__message map-verify__message--ok">{t("map.verifySubmitted")}</p>
                   ) : (
                     <>
+                      <p className="map-detail__verify-hint">{t("map.verifyHintShort")}</p>
                       {previousRejectedOnce ? (
                         <p className="map-verify__message">{t("map.verifyRetryHint")}</p>
                       ) : null}

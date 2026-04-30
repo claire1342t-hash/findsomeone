@@ -135,9 +135,9 @@ function Login() {
                   type="button"
                   className="account-password-toggle"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? "隱藏密碼" : "顯示密碼"}
+                  aria-label={showPassword ? t("login.hidePasswordAria") : t("login.showPasswordAria")}
                 >
-                  {showPassword ? "隱藏" : "顯示"}
+                  {showPassword ? t("login.hidePassword") : t("login.showPassword")}
                 </button>
               </div>
             </div>
