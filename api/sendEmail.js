@@ -18,6 +18,7 @@ import { SignJWT, importPKCS8 } from "jose";
 export const config = { runtime: "edge" };
 
 const LOG = "[sendEmail]";
+const MAIL_DIVIDER = "\n\n------------------------------\n\n";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,6 +148,26 @@ async function sendResend({ apiKey, from, to, subject, text }) {
     throw new Error(`resend: ${raw}`);
   }
   return parsed;
+}
+
+function buildTrilingualBody({ zh, en, ja, postId }) {
+  return (
+    "【繁體中文】\n\n" +
+    zh +
+    "\n\n貼文編號：" +
+    postId +
+    MAIL_DIVIDER +
+    "[English]\n\n" +
+    en +
+    "\n\nPost ID: " +
+    postId +
+    MAIL_DIVIDER +
+    "【日本語】\n\n" +
+    ja +
+    "\n\n投稿ID：" +
+    postId +
+    "\n"
+  );
 }
 
 export default async function handler(request) {
@@ -292,12 +313,14 @@ export default async function handler(request) {
         apiKey: resendKey,
         from: resendFrom,
         to,
-        subject: "【Findsomeone】有人回覆了你的貼文",
-        text:
-          "你好，\n\n" +
-          "有人在 Findsomeone 地圖上回覆了你的一篇貼文，並已提交驗證答案。\n" +
-          "請登入網站並前往「個人」頁面檢視回覆、決定是否接受。\n\n" +
-          `貼文編號：${postId}\n`,
+        subject:
+          "【Findsomeone】有人回覆了你的貼文 | Someone replied to your post | あなたの投稿に返信がありました",
+        text: buildTrilingualBody({
+          zh: "你好，\n\n有人在 Findsomeone 地圖上回覆了你的一篇貼文，並已提交驗證答案。\n請登入網站並前往「個人」頁面檢視回覆、決定是否接受。",
+          en: "Hello,\n\nSomeone has replied to your post on Findsomeone and submitted verification answers.\nPlease log in and go to your Profile page to review the response and decide whether to accept it.",
+          ja: "こんにちは。\n\nFindsomeone の地図で、あなたの投稿に返信があり、本人確認の回答が送信されました。\nサイトにログインし、「プロフィール」ページで返信内容を確認して、受け入れるかどうかを決めてください。",
+          postId,
+        }),
       });
       console.log(`${LOG} SUCCESS mapResponseSubmitted`, resendBody);
       return new Response(JSON.stringify({ ok: true, resend: resendBody }), {
@@ -326,24 +349,28 @@ export default async function handler(request) {
           apiKey: resendKey,
           from: resendFrom,
           to,
-          subject: "【Findsomeone】貼文主已接受：可以開始匿名聊天",
-          text:
-            "你好，\n\n" +
-            "你回覆的一篇貼文已被作者按下「就是你！」（接受）。\n" +
-            "匿名聊天室已開啟，請登入網站並從「聊天」進入對話。\n\n" +
-            `貼文編號：${postId}\n`,
+          subject:
+            "【Findsomeone】貼文主已接受：可以開始匿名聊天 | Your response was accepted: anonymous chat is now open | 投稿者が承認しました：匿名チャットを開始できます",
+          text: buildTrilingualBody({
+            zh: "你好，\n\n你回覆的一篇貼文已被作者按下「就是你！」（接受）。\n匿名聊天室已開啟，請登入網站並從「聊天」進入對話。",
+            en: "Hello,\n\nThe post owner accepted your response (\"That's you!\").\nAn anonymous chat room is now open. Please log in and open Chat to continue.",
+            ja: "こんにちは。\n\nあなたの返信は投稿者に承認されました（「あなたです！」）。\n匿名チャットが開始されました。ログインして「チャット」から会話を始めてください。",
+            postId,
+          }),
         });
       } else {
         resendBody = await sendResend({
           apiKey: resendKey,
           from: resendFrom,
           to,
-          subject: "【Findsomeone】貼文主標記為可能認錯了",
-          text:
-            "你好，\n\n" +
-            "你回覆的一篇貼文已被作者標記為「可能認錯了」。\n" +
-            "若仍符合條件，可依網站說明再次嘗試。\n\n" +
-            `貼文編號：${postId}\n`,
+          subject:
+            "【Findsomeone】貼文主標記為可能認錯了 | The post owner marked your response as not a match | 投稿者が「人違いの可能性あり」と判定しました",
+          text: buildTrilingualBody({
+            zh: "你好，\n\n你回覆的一篇貼文已被作者標記為「可能認錯了」。\n若仍符合條件，可依網站說明再次嘗試。",
+            en: "Hello,\n\nThe post owner marked your response as \"possibly not a match\".\nIf you still think it matches, you may try again according to the app instructions.",
+            ja: "こんにちは。\n\nあなたの返信は投稿者に「人違いの可能性あり」と判定されました。\n条件に当てはまる場合は、サイトの案内に沿って再度お試しください。",
+            postId,
+          }),
         });
       }
       console.log(`${LOG} SUCCESS`, kind, resendBody);
