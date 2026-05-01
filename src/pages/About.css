@@ -1,0 +1,24 @@
+.about-main {
+  gap: 20px;
+}
+
+.about-hero .hero-copy h1 {
+  margin-top: 0;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.about-card h2 {
+  margin-top: 0;
+}
+
+.about-card p {
+  margin: 10px 0 0;
+  color: #5d5f5d;
+  font-size: 16px;
+  line-height: 1.55;
+}

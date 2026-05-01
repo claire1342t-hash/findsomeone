@@ -8,6 +8,17 @@ export const messages = {
     "nav.about": "關於",
     "nav.map": "地圖",
     "nav.chat": "聊天",
+    "about.pageTitle": "關於 Findsomeone",
+    "about.pageSubtitle": "以地點為核心，讓你重新連上當時錯過的緣分。",
+    "about.what.title": "這是什麼？",
+    "about.what.body":
+      "Findsomeone 是一個以地點為核心的平台，幫助你重新與當時沒勇氣上前搭話的「陌生人」建立聯繫。",
+    "about.how.title": "如何運作？",
+    "about.how.body":
+      "發布一段描述與地點 → 附近的使用者會收到通知 → 對方透過只有你才知道答案的驗證題確認身分 → 雙方同意後即可開始匿名聊天。",
+    "about.safe.title": "為什麼安全？",
+    "about.safe.body":
+      "在雙方都同意對聊之前，彼此保持匿名；貼文與地圖上不會顯示你的個人資料，降低被陌生人辨識的風險。",
     "meta.profileAria": "登入或個人檔案",
     "meta.profileAriaGuest": "前往登入",
     "meta.profileAriaUser": "個人檔案",
@@ -159,6 +170,17 @@ export const messages = {
     "nav.about": "About",
     "nav.map": "Map",
     "nav.chat": "Chat",
+    "about.pageTitle": "About Findsomeone",
+    "about.pageSubtitle": "A location-based way to reconnect with a moment you almost had.",
+    "about.what.title": "What is it?",
+    "about.what.body":
+      "Findsomeone is a location-based platform to reconnect with strangers you were too shy to approach.",
+    "about.how.title": "How it works",
+    "about.how.body":
+      "Post a description → nearby users get notified → verification questions check it was really you → anonymous chat after mutual consent.",
+    "about.safe.title": "Why it’s safe",
+    "about.safe.body":
+      "You stay anonymous until both sides agree to chat. No personal info is shown on posts or the map.",
     "meta.profileAria": "Log in or profile",
     "meta.profileAriaGuest": "Go to log in",
     "meta.profileAriaUser": "Profile",
@@ -311,6 +333,17 @@ export const messages = {
     "nav.about": "概要",
     "nav.map": "地図",
     "nav.chat": "チャット",
+    "about.pageTitle": "Findsomeone について",
+    "about.pageSubtitle": "場所を手がかりに、あの一歩を取り戻すためのサービスです。",
+    "about.what.title": "どんなサービス？",
+    "about.what.body":
+      "Findsomeone は位置情報を使い、声をかけられなかった「見知らぬ人」とつながり直すためのプラットフォームです。",
+    "about.how.title": "仕組み",
+    "about.how.body":
+      "説明と場所を投稿 → 近くのユーザーに通知 → 本人だけが答えられる確認の質問 → 双方が同意したら匿名チャットが始まります。",
+    "about.safe.title": "安全性について",
+    "about.safe.body":
+      "お互いがチャットに同意するまでは匿名のままです。投稿や地図上に個人情報は表示されません。",
     "meta.profileAria": "ログイン / プロフィール",
     "meta.profileAriaGuest": "ログインへ",
     "meta.profileAriaUser": "プロフィール",

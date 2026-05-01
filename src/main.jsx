@@ -12,18 +12,9 @@ import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
 import ChatPage from "./pages/Chat.jsx";
 import ChatListPage from "./pages/ChatList.jsx";
+import About from "./pages/About.jsx";
 
 const ROOT_KEY = "__findsomeone_app_root__";
-
-const aboutPlaceholderElement = (
-  <main className="home-main">
-    <section className="hero-section">
-      <div className="hero-copy">
-        <h1>About page coming soon</h1>
-      </div>
-    </section>
-  </main>
-);
 
 const container = document.getElementById("root");
 if (!container) {
@@ -44,7 +35,7 @@ root.render(
             <Route path="/map" element={<MapPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/about" element={aboutPlaceholderElement} />
+            <Route path="/about" element={<About />} />
             <Route path="/chat" element={<ChatListPage />} />
             <Route path="/chat/:chatId" element={<ChatPage />} />
           </Routes>
