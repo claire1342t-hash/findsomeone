@@ -58,6 +58,11 @@ navbar大小變更
 - 寄信流程除錯用 **console.log**（客戶端 `[sendEmail:client]`、Edge `[sendEmail]`）；本機可透過 `.env.local` 的 `REACT_APP_SEND_EMAIL_URL` 指向已部署 API
 - 移除誤加的 **Firebase Cloud Functions** `functions/` 目錄；`firebase.json` 僅保留 Firestore
 - 依賴：`jose`（Edge 簽 JWT 換 Firestore token）
+- Vercel 設定修正：`vercel.json` 移除不合法 `rewrites.handle`；SPA rewrite 排除 `/api`，部署恢復正常
+- `api/sendEmail.js` 串接整理：`from` 改讀 `RESEND_FROM`、收件者改讀貼文作者 Firestore email，通知信主旨/內文升級為中英日三語（含分隔線）
+- 發文頁新增地點關鍵字搜尋（Nominatim）：搜尋結果覆蓋在地圖浮層、可直接跳點放 pin、點選後結果自動收合
+- 地圖頁優化：群組清單固定最新貼文在上；細節時間格式改為日期 + 上午/下午（依語言顯示）
+- About 頁面暫時回退為「About page coming soon」佔位內容
 
 
 ## 🔧 待修正
