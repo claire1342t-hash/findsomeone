@@ -45,6 +45,10 @@ function formatDate(createdAt, language) {
   });
 }
 
+function createdAtMs(createdAt) {
+  return createdAt?.toDate ? createdAt.toDate().getTime() : 0;
+}
+
 function getMotivationText(post, t) {
   if (post?.motivation === "custom") {
     return post?.motivationCustom || t("post.motivation.custom");
@@ -126,11 +130,16 @@ function MapPage() {
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [previousRejectedOnce, setPreviousRejectedOnce] = useState(false);
 
-  const selectedPost = clusterPosts.find((item) => item.id === selectedPostId) ?? null;
+  const sortedClusterPosts = useMemo(
+    () => [...clusterPosts].sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt)),
+    [clusterPosts],
+  );
+
+  const selectedPost = sortedClusterPosts.find((item) => item.id === selectedPostId) ?? null;
 
   const leftScrollKey = useMemo(
-    () => `${clusterPosts.map((p) => p.id).join(",")}-${selectedPostId}`,
-    [clusterPosts, selectedPostId],
+    () => `${sortedClusterPosts.map((p) => p.id).join(",")}-${selectedPostId}`,
+    [sortedClusterPosts, selectedPostId],
   );
   const rightScrollKey = useMemo(
     () => `${selectedPostId ?? ""}-${verifyOpen}-${verifySubmitted}-${verifyLocked}`,
@@ -320,12 +329,12 @@ function MapPage() {
             className={`map-sheet__left-wrap ${leftShowFade ? "map-sheet__left-wrap--bottom-fade" : ""}`}
           >
             <div className="map-sheet__left" ref={leftScrollRef} onScroll={onLeftScroll}>
-              <p className="map-sheet__hint">{clusterPosts.length > 0 ? t("map.sheetHint") : t("map.sheetDefault")}</p>
-              {clusterPosts.length === 0 ? (
+              <p className="map-sheet__hint">{sortedClusterPosts.length > 0 ? t("map.sheetHint") : t("map.sheetDefault")}</p>
+              {sortedClusterPosts.length === 0 ? (
                 <p className="map-sheet__empty">{posts.length === 0 ? t("map.noPosts") : t("map.emptyCluster")}</p>
               ) : (
                 <ul className="map-sheet__list">
-                  {clusterPosts.map((post) => (
+                  {sortedClusterPosts.map((post) => (
                     <li key={post.id}>
                       <button
                         type="button"
