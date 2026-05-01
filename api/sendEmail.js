@@ -19,9 +19,6 @@ export const config = { runtime: "edge" };
 
 const LOG = "[sendEmail]";
 
-/** Temporary: all notifications go here while testing Resend (bypasses Firestore user email). */
-const HARDCODED_TO_EMAIL = "Claire1342t@gmail.com";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
@@ -118,6 +115,14 @@ async function firestoreGetDoc(projectId, accessToken, relativePath) {
   }
   console.log(`${LOG} Firestore GET OK`, { path: relativePath });
   return JSON.parse(raw);
+}
+
+async function getUserEmail(projectId, accessToken, uid) {
+  const doc = await firestoreGetDoc(projectId, accessToken, `users/${uid}`);
+  if (!doc) return null;
+  const email = String(stringField(doc, "email")).trim();
+  console.log(`${LOG} user email resolved`, { uid, hasEmail: !!email });
+  return email || null;
 }
 
 async function sendResend({ apiKey, from, to, subject, text }) {
@@ -257,6 +262,14 @@ export default async function handler(request) {
     });
   }
   console.log(`${LOG} post loaded`, { postId, authorUid });
+  const to = await getUserEmail(projectId, accessToken, authorUid);
+  if (!to) {
+    console.log(`${LOG} done: author_has_no_email (not sent)`);
+    return new Response(JSON.stringify({ ok: false, reason: "author_has_no_email" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     if (kind === "mapResponseSubmitted") {
@@ -278,7 +291,7 @@ export default async function handler(request) {
       const resendBody = await sendResend({
         apiKey: resendKey,
         from: resendFrom,
-        to: HARDCODED_TO_EMAIL,
+        to,
         subject: "【Findsomeone】有人回覆了你的貼文",
         text:
           "你好，\n\n" +
@@ -312,7 +325,7 @@ export default async function handler(request) {
         resendBody = await sendResend({
           apiKey: resendKey,
           from: resendFrom,
-          to: HARDCODED_TO_EMAIL,
+          to,
           subject: "【Findsomeone】貼文主已接受：可以開始匿名聊天",
           text:
             "你好，\n\n" +
@@ -324,7 +337,7 @@ export default async function handler(request) {
         resendBody = await sendResend({
           apiKey: resendKey,
           from: resendFrom,
-          to: HARDCODED_TO_EMAIL,
+          to,
           subject: "【Findsomeone】貼文主標記為可能認錯了",
           text:
             "你好，\n\n" +
