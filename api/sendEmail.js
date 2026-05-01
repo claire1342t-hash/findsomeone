@@ -5,9 +5,10 @@
  *
  * Env (Vercel project settings):
  * - RESEND_API_KEY
- * - RESEND_FROM (e.g. "Findsomeone <onboarding@resend.dev>")
  * - FIREBASE_WEB_API_KEY (same as client REACT_APP_FIREBASE_API_KEY)
  * - FIREBASE_SERVICE_ACCOUNT_JSON (full service account JSON string)
+ *
+ * Temporary: `from` is fixed below; `to` is hardcoded (Resend verified inbox), not Firestore.
  *
  * Debug: Vercel Dashboard → project → Logs (or Functions → select deployment → Logs).
  * Search for prefix `[sendEmail]`.
@@ -18,6 +19,10 @@ import { SignJWT, importPKCS8 } from "jose";
 export const config = { runtime: "edge" };
 
 const LOG = "[sendEmail]";
+
+const RESEND_FROM_FIXED = "Findsomeone <onboarding@resend.dev>";
+/** Temporary: all notifications go here while testing Resend (bypasses Firestore user email). */
+const HARDCODED_TO_EMAIL = "Claire1342t@gmail.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,14 +122,6 @@ async function firestoreGetDoc(projectId, accessToken, relativePath) {
   return JSON.parse(raw);
 }
 
-async function getUserEmail(projectId, accessToken, uid) {
-  const doc = await firestoreGetDoc(projectId, accessToken, `users/${uid}`);
-  if (!doc) return null;
-  const email = String(stringField(doc, "email")).trim();
-  console.log(`${LOG} user email resolved`, { uid, hasEmail: !!email });
-  return email || null;
-}
-
 async function sendResend({ apiKey, from, to, subject, text }) {
   console.log(`${LOG} calling Resend API`, { to, subjectPreview: subject.slice(0, 40) });
   const r = await fetch("https://api.resend.com/emails", {
@@ -165,19 +162,17 @@ export default async function handler(request) {
   console.log(`${LOG} POST received`);
 
   const resendKey = process.env.RESEND_API_KEY;
-  const resendFrom = process.env.RESEND_FROM;
   const webApiKey = process.env.FIREBASE_WEB_API_KEY;
   const saJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   const envPresent = {
     RESEND_API_KEY: !!resendKey,
-    RESEND_FROM: !!resendFrom,
     FIREBASE_WEB_API_KEY: !!webApiKey,
     FIREBASE_SERVICE_ACCOUNT_JSON: !!saJson,
   };
   console.log(`${LOG} env presence (true = set)`, envPresent);
 
-  if (!resendKey || !resendFrom || !webApiKey || !saJson) {
+  if (!resendKey || !webApiKey || !saJson) {
     const missing = Object.entries(envPresent)
       .filter(([, v]) => !v)
       .map(([k]) => k);
@@ -280,18 +275,10 @@ export default async function handler(request) {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const to = await getUserEmail(projectId, accessToken, authorUid);
-      if (!to) {
-        console.log(`${LOG} done: poster_has_no_email (not sent)`);
-        return new Response(JSON.stringify({ ok: false, reason: "poster_has_no_email" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const resendBody = await sendResend({
         apiKey: resendKey,
-        from: resendFrom,
-        to,
+        from: RESEND_FROM_FIXED,
+        to: HARDCODED_TO_EMAIL,
         subject: "【Findsomeone】有人回覆了你的貼文",
         text:
           "你好，\n\n" +
@@ -320,20 +307,12 @@ export default async function handler(request) {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const to = await getUserEmail(projectId, accessToken, responseUserId);
-      if (!to) {
-        console.log(`${LOG} done: responder_has_no_email (not sent)`);
-        return new Response(JSON.stringify({ ok: false, reason: "responder_has_no_email" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       let resendBody;
       if (kind === "posterAcceptedResponse") {
         resendBody = await sendResend({
           apiKey: resendKey,
-          from: resendFrom,
-          to,
+          from: RESEND_FROM_FIXED,
+          to: HARDCODED_TO_EMAIL,
           subject: "【Findsomeone】貼文主已接受：可以開始匿名聊天",
           text:
             "你好，\n\n" +
@@ -344,8 +323,8 @@ export default async function handler(request) {
       } else {
         resendBody = await sendResend({
           apiKey: resendKey,
-          from: resendFrom,
-          to,
+          from: RESEND_FROM_FIXED,
+          to: HARDCODED_TO_EMAIL,
           subject: "【Findsomeone】貼文主標記為可能認錯了",
           text:
             "你好，\n\n" +
