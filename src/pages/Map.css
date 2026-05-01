@@ -81,10 +81,35 @@
   z-index: 2;
 }
 
-.map-sheet__left {
+.map-sheet__left-wrap {
+  position: relative;
   width: 100%;
   min-width: 0;
   height: 100%;
+  min-height: 0;
+}
+
+.map-sheet__left-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(247, 247, 247, 0.95));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.map-sheet__left-wrap--bottom-fade::after {
+  opacity: 1;
+}
+
+.map-sheet__left {
+  height: 100%;
+  min-height: 0;
   overflow: auto;
   padding: 10px 16px 18px;
   background: rgba(247, 247, 247, 0.97);
@@ -158,34 +183,61 @@
   gap: 8px 14px;
 }
 
-.map-sheet__right {
+.map-sheet__right-wrap {
   width: 0;
   opacity: 0;
   min-width: 0;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   transition: width 0.28s ease, opacity 0.2s ease;
+  position: relative;
+}
+
+.map-sheet__right-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(247, 247, 247, 0.95));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.map-sheet__right-wrap--bottom-fade::after {
+  opacity: 1;
+}
+
+.map-sheet__right {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  padding: 18px 20px 22px;
   background: rgba(247, 247, 247, 0.97);
   border: 1px solid #dbdbdb;
   border-radius: 16px;
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
 }
 
-.map-sheet.is-split .map-sheet__left {
+.map-sheet.is-split .map-sheet__left-wrap {
   width: calc(50% - 6px);
 }
 
-.map-sheet.is-split .map-sheet__right {
+.map-sheet.is-split .map-sheet__right-wrap {
   width: calc(50% - 6px);
   opacity: 1;
-  overflow: auto;
-  padding: 18px 20px 22px;
+  overflow: visible;
 }
 
 .map-detail__title {
   margin: 0 0 10px;
   font-family: "Noto Serif TC", serif;
-  font-size: 28px;
+  font-size: 25px;
   line-height: 1.2;
 }
 
@@ -386,23 +438,31 @@
     flex-direction: column;
   }
 
-  .map-sheet.is-split .map-sheet__left,
-  .map-sheet.is-split .map-sheet__right {
+  .map-sheet.is-split .map-sheet__left-wrap,
+  .map-sheet.is-split .map-sheet__right-wrap {
     width: 100%;
   }
 
-  .map-sheet.is-split .map-sheet__left {
+  .map-sheet.is-split .map-sheet__left-wrap {
     /* top panel fixed preview height (~1 card) */
     flex: 0 0 205px;
     height: 205px;
     min-height: 0;
+    overflow: hidden;
+  }
+
+  .map-sheet.is-split .map-sheet__left-wrap .map-sheet__left {
     overflow: auto;
   }
 
-  .map-sheet.is-split .map-sheet__right {
+  .map-sheet.is-split .map-sheet__right-wrap {
     width: 100%;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: visible;
+  }
+
+  .map-sheet.is-split .map-sheet__right-wrap .map-sheet__right {
     /* bottom panel scroll when content overflows */
     overflow: auto;
   }

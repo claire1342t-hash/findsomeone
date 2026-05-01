@@ -15,19 +15,23 @@ export async function deleteChatCascade(chatId) {
   await deleteDoc(doc(db, "chats", chatId));
 }
 
+/**
+ * Chats linked to this post still in their window (expiresAt in the future, or missing).
+ */
+export async function hasActiveChatsForPost(postId) {
+  const chatsSnap = await getDocs(query(collection(db, "chats"), where("postId", "==", postId)));
+  const now = Date.now();
+  for (const d of chatsSnap.docs) {
+    const expMs = d.data()?.expiresAt?.toDate?.()?.getTime?.();
+    if (expMs == null || expMs > now) return true;
+  }
+  return false;
+}
+
+/** Deletes the post, all response subdocs, and ownedPosts index entry. Does not delete chats. */
 export async function deletePostCascade(postId, ownerUid) {
   const responsesSnap = await getDocs(collection(db, "posts", postId, "responses"));
-  const chatIds = new Set();
-  responsesSnap.docs.forEach((d) => {
-    const id = d.data()?.chatId;
-    if (typeof id === "string" && id) chatIds.add(id);
-  });
-
-  const chatsSnap = await getDocs(query(collection(db, "chats"), where("postId", "==", postId)));
-  chatsSnap.docs.forEach((d) => chatIds.add(d.id));
-
   await Promise.allSettled(responsesSnap.docs.map((d) => deleteDoc(d.ref)));
-  await Promise.allSettled(Array.from(chatIds).map((chatId) => deleteChatCascade(chatId)));
   await deleteDoc(doc(db, "posts", postId));
 
   if (ownerUid) {

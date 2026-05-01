@@ -16,19 +16,8 @@ import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
+import { formatRelativeSmart } from "../utils/relativeTime.js";
 import "./Chat.css";
-
-function formatRelativeTime(value, language) {
-  if (!value?.toDate) return "";
-  const diffMs = Math.max(0, Date.now() - value.toDate().getTime());
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return language === "en" ? "Just now" : language === "ja" ? "たった今" : "剛剛";
-  if (min < 60) return language === "en" ? `${min}m ago` : language === "ja" ? `${min}分前` : `${min}分鐘前`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return language === "en" ? `${hr}h ago` : language === "ja" ? `${hr}時間前` : `${hr}小時前`;
-  const day = Math.floor(hr / 24);
-  return language === "en" ? `${day}d ago` : language === "ja" ? `${day}日前` : `${day}天前`;
-}
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
 
@@ -198,7 +187,7 @@ export default function ChatPage() {
                 return (
                   <article key={msg.id} className={`chat-msg ${mine ? "is-mine" : "is-their"}`}>
                     <div className="chat-msg__bubble">{msg.text}</div>
-                    {shouldShowTime ? <div className="chat-msg__time">{formatRelativeTime(msg.createdAt, language)}</div> : null}
+                    {shouldShowTime ? <div className="chat-msg__time">{formatRelativeSmart(msg.createdAt, language, undefined, "")}</div> : null}
                   </article>
                 );
               })}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
 import { Link, useNavigate } from "react-router-dom";
 import {
   collection,
@@ -22,28 +23,10 @@ import { useAuth } from "../context/AuthContext.jsx";
 import defaultAvatar from "../assets/illustrations/profile.png";
 import { AVATAR_OPTIONS, getAvatarById } from "../assets/avatarOptions.js";
 import { generateAnonymousName } from "../utils/generateAnonymousName.js";
-import { deletePostCascade, isPostExpired } from "../utils/postLifecycle.js";
+import { deletePostCascade, hasActiveChatsForPost, isPostExpired } from "../utils/postLifecycle.js";
+import { formatRelativeSmart } from "../utils/relativeTime.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import "./Account.css";
-
-function formatNotificationRelative(value, language) {
-  if (!value?.toDate) return "—";
-  const now = Date.now();
-  const ts = value.toDate().getTime();
-  const diffMs = Math.max(0, now - ts);
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 1) return language === "en" ? "Just now" : language === "ja" ? "たった今" : "剛剛";
-  if (diffMinutes < 60) {
-    if (language === "en") return `${diffMinutes}m ago`;
-    if (language === "ja") return `${diffMinutes}分前`;
-    return `${diffMinutes}分鐘前`;
-  }
-  if (diffDays <= 0) return language === "en" ? "Today" : language === "ja" ? "今日" : "今天";
-  if (language === "en") return `${diffDays}d ago`;
-  if (language === "ja") return `${diffDays}日前`;
-  return `${diffDays}天前`;
-}
 
 function createdAtIso(value) {
   if (!value?.toDate) return undefined;
@@ -92,6 +75,27 @@ function Profile() {
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [pendingAvatarId, setPendingAvatarId] = useState(1);
+
+  const expandedPostsKey = useMemo(
+    () =>
+      Object.keys(expandedPostIds)
+        .filter((k) => expandedPostIds[k])
+        .sort()
+        .join(","),
+    [expandedPostIds],
+  );
+  const postsScrollKey = useMemo(() => `${posts.length}-${expandedPostsKey}`, [posts.length, expandedPostsKey]);
+  const repliesScrollKey = useMemo(() => `${repliedPosts.length}`, [repliedPosts.length]);
+  const {
+    ref: postsScrollInnerRef,
+    onScroll: onPostsScroll,
+    showFade: postsScrollShowFade,
+  } = useBottomScrollFade(postsScrollKey);
+  const {
+    ref: repliesScrollInnerRef,
+    onScroll: onRepliesScroll,
+    showFade: repliesScrollShowFade,
+  } = useBottomScrollFade(repliesScrollKey);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -360,6 +364,13 @@ function Profile() {
         chatId: chatRef.id,
         reviewedAt: serverTimestamp(),
       });
+      try {
+        console.log("[Profile] calling sendEmail posterAcceptedResponse", { postId, responseUserId });
+        const mailResult = await sendEmail({ kind: "posterAcceptedResponse", postId, responseUserId });
+        console.log("[Profile] sendEmail finished", mailResult);
+      } catch (mailErr) {
+        console.error("[Profile] sendEmail posterAcceptedResponse failed", mailErr);
+      }
       navigate(`/chat/${chatRef.id}`);
     } catch (err) {
       console.error(err);
@@ -380,6 +391,13 @@ function Profile() {
         attemptCount: increment(1),
         reviewedAt: serverTimestamp(),
       });
+      try {
+        console.log("[Profile] calling sendEmail posterRejectedResponse", { postId, responseUserId });
+        const mailResult = await sendEmail({ kind: "posterRejectedResponse", postId, responseUserId });
+        console.log("[Profile] sendEmail finished", mailResult);
+      } catch (mailErr) {
+        console.error("[Profile] sendEmail posterRejectedResponse failed", mailErr);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -388,8 +406,17 @@ function Profile() {
   };
 
   const deletePostManually = async (postId) => {
-    const ok = window.confirm(t("profile.confirmDeletePost"));
-    if (!ok || !user) return;
+    if (!user) return;
+    let hasActiveChats = false;
+    try {
+      hasActiveChats = await hasActiveChatsForPost(postId);
+    } catch (err) {
+      console.error(err);
+      setPostsError(err.message || String(err));
+      return;
+    }
+    const confirmKey = hasActiveChats ? "profile.confirmDeletePostWithChats" : "profile.confirmDeletePost";
+    if (!window.confirm(t(confirmKey))) return;
     try {
       await deletePostCascade(postId, user.uid);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
@@ -442,11 +469,19 @@ function Profile() {
           {posts.length === 0 && !postsError ? (
             <p className="account-muted">{t("profile.postsEmpty")}</p>
           ) : (
+            <div
+              className={`profile-scroll-block ${postsScrollShowFade ? "profile-scroll-block--bottom-fade" : ""}`}
+            >
+              <div
+                ref={postsScrollInnerRef}
+                onScroll={onPostsScroll}
+                className="profile-scroll-block__inner"
+              >
             <ul className="profile-post-list">
               {posts.map((p) => (
                 <li key={p.id} className="profile-post-card">
                   <div className="profile-post-meta">
-                    <time dateTime={createdAtIso(p.createdAt)}>{formatNotificationRelative(p.createdAt, language)}</time>
+                    <time dateTime={createdAtIso(p.createdAt)}>{formatRelativeSmart(p.createdAt, language)}</time>
                     <button
                       type="button"
                       className="account-btn account-btn--ghost profile-post-delete-btn"
@@ -532,6 +567,8 @@ function Profile() {
                 </li>
               ))}
             </ul>
+              </div>
+            </div>
           )}
         </section>
 
@@ -543,6 +580,14 @@ function Profile() {
           {repliedPosts.length === 0 && !repliedPostsError ? (
             <p className="account-muted">{t("profile.repliesEmpty")}</p>
           ) : (
+            <div
+              className={`profile-scroll-block ${repliesScrollShowFade ? "profile-scroll-block--bottom-fade" : ""}`}
+            >
+              <div
+                ref={repliesScrollInnerRef}
+                onScroll={onRepliesScroll}
+                className="profile-scroll-block__inner"
+              >
             <ul className="profile-post-list">
               {repliedPosts.map((row) => {
                 const responseKind = getResponseStatusKind(row.response);
@@ -553,7 +598,7 @@ function Profile() {
                       <div className="profile-response-meta-left">
                         <span className={`profile-response-badge profile-response-badge--${kind}`}>{t(`profile.responseStatus.${kind}`)}</span>
                       </div>
-                      <span className="profile-response-time">{formatNotificationRelative(row.response?.createdAt, language)}</span>
+                      <span className="profile-response-time">{formatRelativeSmart(row.response?.createdAt, language)}</span>
                     </div>
                     <p className="profile-post-snippet">{appearanceTitleFromPost(row.post, t)}</p>
                     {kind === "retry" ? (
@@ -565,6 +610,8 @@ function Profile() {
                 );
               })}
             </ul>
+              </div>
+            </div>
           )}
         </section>
       </main>

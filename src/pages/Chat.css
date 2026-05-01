@@ -196,4 +196,7 @@
   .chat-page .avatar-button {
     display: none;
   }
+  .chat-messages {
+    max-height: 55vh;
+  }
 }

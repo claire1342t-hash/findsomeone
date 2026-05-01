@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -21,6 +22,8 @@ import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { generateAnonymousName } from "../utils/generateAnonymousName.js";
 import { deletePostCascade, isPostExpired } from "../utils/postLifecycle.js";
+import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.png";
@@ -31,26 +34,6 @@ function getAppearanceTitle(post, t) {
   const appearance = post.description?.appearance ?? "";
   const firstLine = appearance.split(/\r?\n/)[0].trim();
   return firstLine || t("map.postFallbackAppearance");
-}
-
-function getStoryText(post, t) {
-  const story = post.description?.story ?? "";
-  return story.trim() || t("map.postFallbackStory");
-}
-
-function formatRelativeTime(createdAt, language) {
-  if (!createdAt?.toDate) return "—";
-  const now = Date.now();
-  const target = createdAt.toDate().getTime();
-  const diffDays = Math.floor((now - target) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0) {
-    if (language === "en") return "Today";
-    if (language === "ja") return "今日";
-    return "今天";
-  }
-  if (language === "en") return `${diffDays}d ago`;
-  if (language === "ja") return `${diffDays}日前`;
-  return `${diffDays}天前`;
 }
 
 function formatDate(createdAt, language) {
@@ -143,6 +126,19 @@ function MapPage() {
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [previousRejectedOnce, setPreviousRejectedOnce] = useState(false);
 
+  const selectedPost = clusterPosts.find((item) => item.id === selectedPostId) ?? null;
+
+  const leftScrollKey = useMemo(
+    () => `${clusterPosts.map((p) => p.id).join(",")}-${selectedPostId}`,
+    [clusterPosts, selectedPostId],
+  );
+  const rightScrollKey = useMemo(
+    () => `${selectedPostId ?? ""}-${verifyOpen}-${verifySubmitted}-${verifyLocked}`,
+    [selectedPostId, verifyOpen, verifySubmitted, verifyLocked],
+  );
+  const { ref: leftScrollRef, onScroll: onLeftScroll, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
+  const { ref: rightScrollRef, onScroll: onRightScroll, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
+
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
@@ -167,7 +163,6 @@ function MapPage() {
     });
   }, [user]);
 
-  const selectedPost = clusterPosts.find((item) => item.id === selectedPostId) ?? null;
   const isOwnPost = !!user && !!selectedPost && selectedPost.authorUid === user.uid;
 
   const closePanel = () => {
@@ -277,6 +272,14 @@ function MapPage() {
         { merge: true },
       );
 
+      try {
+        console.log("[Map] calling sendEmail after response setDoc", { postId: selectedPost.id });
+        const mailResult = await sendEmail({ kind: "mapResponseSubmitted", postId: selectedPost.id });
+        console.log("[Map] sendEmail finished", mailResult);
+      } catch (mailErr) {
+        console.error("[Map] sendEmail mapResponseSubmitted failed", mailErr);
+      }
+
       setVerifySubmitted(true);
       setPreviousRejectedOnce(false);
     } catch (err) {
@@ -313,37 +316,43 @@ function MapPage() {
           <button type="button" className="map-sheet__close" onClick={closePanel} aria-label={t("map.close")}>
             ×
           </button>
-          <div className="map-sheet__left">
-            <p className="map-sheet__hint">{clusterPosts.length > 0 ? t("map.sheetHint") : t("map.sheetDefault")}</p>
-            {clusterPosts.length === 0 ? (
-              <p className="map-sheet__empty">{posts.length === 0 ? t("map.noPosts") : t("map.emptyCluster")}</p>
-            ) : (
-              <ul className="map-sheet__list">
-                {clusterPosts.map((post) => (
-                  <li key={post.id}>
-                    <button
-                      type="button"
-                      className={`map-post-card ${selectedPostId === post.id ? "is-active" : ""}`}
-                      onClick={() => {
-                        setSelectedPostId(post.id);
-                        resetVerificationState();
-                      }}
-                    >
-                      <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
-                      <p className="map-post-card__story">{getStoryText(post, t)}</p>
-                      <p className="map-post-card__meta">
-                        <span>{formatRelativeTime(post.createdAt, language)}</span>
-                        <span>{post.locationDescription || t("map.locationFallback")}</span>
-                      </p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div
+            className={`map-sheet__left-wrap ${leftShowFade ? "map-sheet__left-wrap--bottom-fade" : ""}`}
+          >
+            <div className="map-sheet__left" ref={leftScrollRef} onScroll={onLeftScroll}>
+              <p className="map-sheet__hint">{clusterPosts.length > 0 ? t("map.sheetHint") : t("map.sheetDefault")}</p>
+              {clusterPosts.length === 0 ? (
+                <p className="map-sheet__empty">{posts.length === 0 ? t("map.noPosts") : t("map.emptyCluster")}</p>
+              ) : (
+                <ul className="map-sheet__list">
+                  {clusterPosts.map((post) => (
+                    <li key={post.id}>
+                      <button
+                        type="button"
+                        className={`map-post-card ${selectedPostId === post.id ? "is-active" : ""}`}
+                        onClick={() => {
+                          setSelectedPostId(post.id);
+                          resetVerificationState();
+                        }}
+                      >
+                        <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
+                        <p className="map-post-card__meta">
+                          <span>{post.locationDescription || t("map.locationFallback")}</span>
+                          <span>{formatRelativeCalendarDay(post.createdAt, language)}</span>
+                        </p>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           {selectedPost ? (
-            <aside className="map-sheet__right">
+            <div
+              className={`map-sheet__right-wrap ${rightShowFade ? "map-sheet__right-wrap--bottom-fade" : ""}`}
+            >
+            <aside className="map-sheet__right" ref={rightScrollRef} onScroll={onRightScroll}>
               <h2 className="map-detail__title">{getAppearanceTitle(selectedPost, t)}</h2>
               <div className="map-detail__title-divider" aria-hidden="true" />
               <div className="map-detail__section map-detail__section--plain">
@@ -419,6 +428,7 @@ function MapPage() {
                 ) : null}
               </section>
             </aside>
+            </div>
           ) : null}
         </section>
       </main>

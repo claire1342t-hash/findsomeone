@@ -47,6 +47,17 @@ navbar大小變更
 - 語言切換與 i18n 文案大量更新（中/英/日同步）
 - Navbar 與 Profile/Chat 多處 UI hover 與互動細節優化
 
+### Day 5 (2026-05-01)
+- 相對時間改為依**本地日曆日**計算（今天／昨天／N 天前），修正滾動 24 小時誤判；共用 `src/utils/relativeTime.js`，Map／Profile／Chat／ChatList 套用
+- 地圖 Bottom Sheet：列表卡移除情境預覽、只留標題／地點／時間；左右欄可捲區底部**淡出陰影**（捲到底隱藏）
+- Profile 貼文／回覆列表可捲區同樣淡出陰影
+- 聊天室列表：**到期前 3 天內**顯示「還剩 X 天／不到 1 天」徽章（灰／橘／紅）；移除卡片 **hover 隨機色**
+- **貼文與聊天生命週期分離**：刪文／過期刪文不再刪聊天室；刪文前若有進行中聊天室改為二次確認文案；`deletePostCascade` 只刪貼文與 responses
+- **Email 通知（MVP）**：`src/utils/sendEmail.js` 以 `fetch` + Firebase ID Token 呼叫 **`api/sendEmail.js`（Vercel Edge + Resend）**；驗證身分後用 service account 讀 Firestore 取收件者；Map 送出回覆後通知貼主、Profile 接受／拒絕後通知回覆者；繁中主旨／內文
+- **`vercel.json`**：`filesystem` 後再 SPA fallback，避免 `/api/sendEmail` 被改寫成 `index.html`；並補 CORS headers
+- 寄信流程除錯用 **console.log**（客戶端 `[sendEmail:client]`、Edge `[sendEmail]`）；本機可透過 `.env.local` 的 `REACT_APP_SEND_EMAIL_URL` 指向已部署 API
+- 移除誤加的 **Firebase Cloud Functions** `functions/` 目錄；`firebase.json` 僅保留 Firestore
+- 依賴：`jose`（Edge 簽 JWT 換 Firestore token）
 
 
 ## 🔧 待修正
@@ -63,7 +74,6 @@ responder 可竄改 response 的 status/attemptCount，加欄位限制功能 bug
 8. 訂閱地點無去重、無上限，加限制細節
 9. 可點擊元素 cursor: auto 改成 cursor: pointer
 10. SiteHeader 的 aria-label 硬編碼，補進 i18n
-- About 頁面完成
 噁男問題
 
 ## 🔗 連結
