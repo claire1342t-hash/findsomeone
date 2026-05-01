@@ -36,8 +36,17 @@ function MapClickHandler({ onPick }) {
   return null;
 }
 
+function MapViewportController({ target }) {
+  const map = useMapEvents({});
+  useEffect(() => {
+    if (!target) return;
+    map.flyTo(target, Math.max(map.getZoom(), 15), { duration: 0.8 });
+  }, [map, target]);
+  return null;
+}
+
 function Post() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -54,14 +63,63 @@ function Post() {
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchBusy, setSearchBusy] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [mapTarget, setMapTarget] = useState(null);
 
   const mapMarkerIcon = useMemo(() => defaultIcon, []);
 
   const handlePick = useCallback((latlng) => {
     setPin(latlng);
+    setMapTarget(latlng);
     setSubmitSuccess(false);
     setSubmitError("");
   }, []);
+
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    const keyword = searchKeyword.trim();
+    if (!keyword) return;
+    setSearchBusy(true);
+    setSearchError("");
+    try {
+      const locale = language === "ja" ? "ja" : language === "en" ? "en" : "zh-TW";
+      const params = new URLSearchParams({
+        q: keyword,
+        format: "jsonv2",
+        addressdetails: "1",
+        limit: "5",
+        "accept-language": locale,
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) throw new Error(t("post.search.error"));
+      const data = await res.json();
+      const normalized = Array.isArray(data)
+        ? data
+            .map((item) => ({
+              key: String(item.place_id ?? `${item.lat}-${item.lon}`),
+              name: String(item.display_name ?? "").trim(),
+              lat: Number(item.lat),
+              lng: Number(item.lon),
+            }))
+            .filter((item) => item.name && Number.isFinite(item.lat) && Number.isFinite(item.lng))
+        : [];
+      setSearchResults(normalized);
+      if (normalized.length === 0) {
+        setSearchError(t("post.search.noResults"));
+      }
+    } catch (err) {
+      console.error(err);
+      setSearchResults([]);
+      setSearchError(t("post.search.error"));
+    } finally {
+      setSearchBusy(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -150,11 +208,51 @@ function Post() {
             <h2 id="post-loc-heading">{t("post.loc.heading")}</h2>
             <p className="post-section-intro">{t("post.loc.intro")}</p>
             <div className="post-map-wrap">
+              <div className="post-map-overlay">
+                <div className="post-map-search">
+                  <input
+                    type="text"
+                    className="post-input post-map-search__input"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder={t("post.search.ph")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSearch(e);
+                    }}
+                  />
+                  <button type="button" className="post-map-search__btn" disabled={searchBusy} onClick={handleSearch}>
+                    {searchBusy ? t("post.saving") : t("post.search.submit")}
+                  </button>
+                </div>
+                {searchResults.length > 0 ? (
+                  <ul className="post-map-search__results">
+                    {searchResults.map((item) => (
+                      <li key={item.key}>
+                        <button
+                          type="button"
+                          className="post-map-search__result-btn"
+                          onClick={() => {
+                            const next = [item.lat, item.lng];
+                            setPin(next);
+                            setMapTarget(next);
+                            setSearchResults([]);
+                            setSearchError("");
+                          }}
+                        >
+                          {item.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {searchError ? <p className="post-map-search__error">{searchError}</p> : null}
+              </div>
               <MapContainer center={TAIPEI_CENTER} zoom={13} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <MapViewportController target={mapTarget} />
                 <MapClickHandler onPick={handlePick} />
                 {pin && <Marker position={pin} icon={mapMarkerIcon} />}
               </MapContainer>

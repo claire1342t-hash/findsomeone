@@ -38,11 +38,12 @@ function getAppearanceTitle(post, t) {
 
 function formatDate(createdAt, language) {
   if (!createdAt?.toDate) return "—";
+  const date = createdAt.toDate();
   const locale = language === "ja" ? "ja-JP" : language === "en" ? "en-US" : "zh-TW";
-  return createdAt.toDate().toLocaleString(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const dateText = new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(date);
+  const hour = date.getHours();
+  const dayPeriod = language === "ja" ? (hour < 12 ? "午前" : "午後") : hour < 12 ? "上午" : "下午";
+  return `${dateText} ${dayPeriod}`;
 }
 
 function createdAtMs(createdAt) {
