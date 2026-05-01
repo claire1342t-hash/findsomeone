@@ -123,14 +123,15 @@ async function firestoreGetDoc(projectId, accessToken, relativePath) {
 }
 
 async function sendResend({ apiKey, from, to, subject, text }) {
-  console.log(`${LOG} calling Resend API`, { to, subjectPreview: subject.slice(0, 40) });
+  const recipientEmail = String(to).trim().toLowerCase();
+  console.log(`${LOG} calling Resend API`, { to: recipientEmail, subjectPreview: subject.slice(0, 40) });
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from, to: [to], subject, text }),
+    body: JSON.stringify({ from, to: [recipientEmail], subject, text }),
   });
   const raw = await r.text();
   let parsed;
