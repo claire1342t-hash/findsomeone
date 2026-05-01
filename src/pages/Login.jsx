@@ -64,12 +64,13 @@ function Login() {
     setError("");
     setBusy(true);
     try {
+      const emailNorm = email.trim().toLowerCase();
       if (mode === "register") {
-        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        const name = displayName.trim() || email.trim().split("@")[0] || "User";
+        const cred = await createUserWithEmailAndPassword(auth, emailNorm, password);
+        const name = displayName.trim() || emailNorm.split("@")[0] || "User";
         await updateProfile(cred.user, { displayName: name });
       } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        await signInWithEmailAndPassword(auth, emailNorm, password);
       }
       navigate("/profile", { replace: true });
     } catch (err) {

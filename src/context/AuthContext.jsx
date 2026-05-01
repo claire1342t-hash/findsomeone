@@ -8,11 +8,12 @@ const AuthContext = createContext(null);
 async function syncUserDocument(user) {
   if (!user) return;
   const ref = doc(db, "users", user.uid);
+  const emailNorm = String(user.email ?? "").trim().toLowerCase();
   await setDoc(
     ref,
     {
-      email: user.email ?? "",
-      displayName: user.displayName || user.email?.split("@")[0] || "User",
+      email: emailNorm,
+      displayName: user.displayName || (emailNorm ? emailNorm.split("@")[0] : "") || "User",
     },
     { merge: true },
   );
