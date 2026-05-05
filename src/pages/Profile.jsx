@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
+import { useEmailDomainSuggestion } from "../hooks/useEmailDomainSuggestion.js";
 import { Link, useNavigate } from "react-router-dom";
+import { sendEmailVerification, verifyBeforeUpdateEmail } from "firebase/auth";
 import {
   collection,
   collectionGroup,
@@ -15,8 +17,9 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { auth, db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
+import { EmailDomainHint } from "../components/EmailDomainHint.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -27,6 +30,27 @@ import { deletePostCascade, hasActiveChatsForPost, isPostExpired } from "../util
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import "./Account.css";
+
+/**
+ * @param {unknown} err
+ * @param {(key: string) => string} t
+ */
+function emailVerifyErrorMessage(err, t) {
+  const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
+  if (code === "auth/too-many-requests") return t("profile.emailVerify.errorTooMany");
+  if (code === "auth/requires-recent-login") return t("profile.emailVerify.errorRecentLogin");
+  if (code === "auth/email-already-in-use") return t("login.errorEmailInUse");
+  if (code === "auth/invalid-email") return t("login.errorInvalidEmail");
+  if (code === "auth/operation-not-allowed") return t("profile.emailVerify.errorNotAllowed");
+  if (code === "auth/network-request-failed") return t("profile.emailVerify.errorNetwork");
+  if (code === "auth/internal-error") return t("profile.emailVerify.errorInternal");
+  return t("login.errorGeneric");
+}
+
+/** Firebase `sendEmailVerification` / `verifyBeforeUpdateEmail` apply to email+password sign-in. */
+function userHasPasswordProvider(u) {
+  return u?.providerData?.some((p) => p.providerId === "password") ?? false;
+}
 
 function createdAtIso(value) {
   if (!value?.toDate) return undefined;
@@ -60,7 +84,7 @@ function firstLineFromAppearance(description, t) {
 
 function Profile() {
   const { t, language } = useLanguage();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, refreshAuthProfile } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -75,6 +99,14 @@ function Profile() {
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [pendingAvatarId, setPendingAvatarId] = useState(1);
+  /** Which email-verify action is in flight (avoids wrong button showing "sending…"). */
+  const [emailVerifyOp, setEmailVerifyOp] = useState(null);
+  const emailVerifyBusy = emailVerifyOp !== null;
+  const [emailVerifyInfo, setEmailVerifyInfo] = useState("");
+  const [emailVerifyError, setEmailVerifyError] = useState("");
+  const [emailModifyOpen, setEmailModifyOpen] = useState(false);
+  const [newEmailForVerify, setNewEmailForVerify] = useState("");
+  const newEmailSuggestion = useEmailDomainSuggestion(newEmailForVerify);
 
   const expandedPostsKey = useMemo(
     () =>
@@ -304,6 +336,103 @@ function Profile() {
     navigate("/", { replace: true });
   };
 
+  const handleResendVerification = async () => {
+    if (!user || emailVerifyBusy) return;
+    setEmailVerifyError("");
+    setEmailVerifyInfo("");
+    const current = auth.currentUser;
+    if (!current?.email) {
+      setEmailVerifyError(t("profile.emailVerify.errorNoSession"));
+      return;
+    }
+    if (!userHasPasswordProvider(current)) {
+      setEmailVerifyError(t("profile.emailVerify.errorPasswordOnly"));
+      return;
+    }
+    setEmailVerifyOp("resend");
+    try {
+      const action =
+        typeof window !== "undefined"
+          ? { url: `${window.location.origin}/profile`, handleCodeInApp: false }
+          : undefined;
+      if (action) {
+        await sendEmailVerification(current, action);
+      } else {
+        await sendEmailVerification(current);
+      }
+      setEmailVerifyInfo(t("profile.emailVerify.sentResend"));
+    } catch (err) {
+      console.error("[emailVerify] sendEmailVerification failed", err);
+      setEmailVerifyError(emailVerifyErrorMessage(err, t));
+    } finally {
+      setEmailVerifyOp(null);
+    }
+  };
+
+  const handleRefreshEmailVerification = async () => {
+    if (!user || emailVerifyBusy) return;
+    setEmailVerifyError("");
+    setEmailVerifyInfo("");
+    setEmailVerifyOp("refresh");
+    try {
+      await refreshAuthProfile();
+      if (user.emailVerified) {
+        setEmailVerifyInfo(t("profile.emailVerify.verifiedOk"));
+      } else {
+        setEmailVerifyInfo(t("profile.emailVerify.notVerifiedYet"));
+      }
+    } catch (err) {
+      setEmailVerifyError(emailVerifyErrorMessage(err, t));
+    } finally {
+      setEmailVerifyOp(null);
+    }
+  };
+
+  const handleSubmitNewEmailForVerification = async () => {
+    if (!user || emailVerifyBusy) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser?.email) {
+      setEmailVerifyError(t("profile.emailVerify.errorNoSession"));
+      return;
+    }
+    if (!userHasPasswordProvider(currentUser)) {
+      setEmailVerifyError(t("profile.emailVerify.errorPasswordOnly"));
+      return;
+    }
+    const next = newEmailForVerify.trim().toLowerCase();
+    const current = String(currentUser.email ?? "").trim().toLowerCase();
+    setEmailVerifyError("");
+    setEmailVerifyInfo("");
+    if (!next) {
+      setEmailVerifyError(t("profile.emailVerify.errorEmptyNew"));
+      return;
+    }
+    if (next === current) {
+      setEmailVerifyError(t("profile.emailVerify.errorSameEmail"));
+      return;
+    }
+    setEmailVerifyOp("newEmail");
+    try {
+      const action =
+        typeof window !== "undefined"
+          ? { url: `${window.location.origin}/profile`, handleCodeInApp: false }
+          : undefined;
+      if (action) {
+        await verifyBeforeUpdateEmail(currentUser, next, action);
+      } else {
+        await verifyBeforeUpdateEmail(currentUser, next);
+      }
+      setEmailModifyOpen(false);
+      setNewEmailForVerify("");
+      setEmailVerifyInfo(t("profile.emailVerify.sentNew"));
+    } catch (err) {
+      console.error("[emailVerify] verifyBeforeUpdateEmail failed", err);
+      setEmailVerifyError(emailVerifyErrorMessage(err, t));
+    } finally {
+      setEmailVerifyOp(null);
+    }
+  };
+
   const approveResponse = async (postId, responseUserId) => {
     if (!user) return;
     const busyKey = `${postId}:${responseUserId}`;
@@ -459,6 +588,93 @@ function Profile() {
             </div>
           </div>
         </div>
+        {user.email && !user.emailVerified ? (
+          <div className="profile-email-verify-banner" role="region" aria-label={t("profile.emailVerify.regionAria")}>
+            <p className="profile-email-verify-banner__text">
+              {t("profile.emailVerify.banner").replace("{email}", user.email)}
+            </p>
+            <div className="profile-email-verify-banner__actions">
+              <button
+                type="button"
+                className="account-btn account-btn--outline profile-email-verify-btn"
+                disabled={emailVerifyBusy}
+                onClick={handleResendVerification}
+              >
+                {emailVerifyOp === "resend" ? t("profile.emailVerify.sending") : t("profile.emailVerify.resend")}
+              </button>
+              <button
+                type="button"
+                className="account-btn account-btn--primary profile-email-verify-btn"
+                disabled={emailVerifyBusy}
+                onClick={() => {
+                  setEmailModifyOpen((prev) => {
+                    if (prev) setNewEmailForVerify("");
+                    return !prev;
+                  });
+                  setEmailVerifyError("");
+                  setEmailVerifyInfo("");
+                }}
+              >
+                {t("profile.emailVerify.modify")}
+              </button>
+              <button
+                type="button"
+                className="account-btn account-btn--ghost profile-email-verify-btn"
+                disabled={emailVerifyBusy}
+                onClick={handleRefreshEmailVerification}
+              >
+                {emailVerifyOp === "refresh" ? t("profile.emailVerify.refreshing") : t("profile.emailVerify.refreshStatus")}
+              </button>
+            </div>
+            <div className="profile-email-verify-feedback" aria-live="polite">
+              {emailVerifyInfo ? <p className="profile-email-verify__ok">{emailVerifyInfo}</p> : null}
+              {emailVerifyError ? (
+                <p className="account-error profile-email-verify__err" role="alert">
+                  {emailVerifyError}
+                </p>
+              ) : null}
+            </div>
+            {emailModifyOpen ? (
+              <div className="profile-email-verify-modify">
+                <p className="profile-email-verify-modify__hint">{t("profile.emailVerify.modifyHint")}</p>
+                <label className="account-label" htmlFor="profile-new-email">
+                  {t("profile.emailVerify.newEmail")}
+                </label>
+                <input
+                  id="profile-new-email"
+                  type="email"
+                  className="account-input"
+                  value={newEmailForVerify}
+                  onChange={(ev) => setNewEmailForVerify(ev.target.value)}
+                  autoComplete="email"
+                />
+                <EmailDomainHint suggestion={newEmailSuggestion} onApply={setNewEmailForVerify} />
+                <div className="profile-email-verify-modify__actions">
+                  <button
+                    type="button"
+                    className="account-btn account-btn--outline"
+                    disabled={emailVerifyBusy}
+                    onClick={() => {
+                      setEmailModifyOpen(false);
+                      setNewEmailForVerify("");
+                      setEmailVerifyError("");
+                    }}
+                  >
+                    {t("profile.emailVerify.cancelModify")}
+                  </button>
+                  <button
+                    type="button"
+                    className="account-btn account-btn--primary"
+                    disabled={emailVerifyBusy}
+                    onClick={handleSubmitNewEmailForVerification}
+                  >
+                    {emailVerifyOp === "newEmail" ? t("profile.emailVerify.sending") : t("profile.emailVerify.submitNew")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {saveError ? <p className="account-error" role="alert">{saveError}</p> : null}
 
         <section className="account-section" aria-labelledby="profile-posts-heading">

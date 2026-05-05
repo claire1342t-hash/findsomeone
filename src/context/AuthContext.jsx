@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, reload, signOut as firebaseSignOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase.js";
 
@@ -22,6 +22,7 @@ async function syncUserDocument(user) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authProfileEpoch, setAuthProfileEpoch] = useState(0);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (nextUser) => {
@@ -39,7 +40,23 @@ export function AuthProvider({ children }) {
 
   const signOut = () => firebaseSignOut(auth);
 
-  const value = useMemo(() => ({ user, loading, signOut }), [user, loading]);
+  const refreshAuthProfile = useCallback(async () => {
+    if (!auth.currentUser) return;
+    await reload(auth.currentUser);
+    try {
+      await syncUserDocument(auth.currentUser);
+    } catch (e) {
+      console.error("syncUserDocument", e);
+    }
+    setAuthProfileEpoch((n) => n + 1);
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, loading, signOut, refreshAuthProfile }),
+    // authProfileEpoch: Firebase `reload()` mutates `user` in place; bump epoch so consumers re-read flags like emailVerified.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depend on authProfileEpoch
+    [user, loading, refreshAuthProfile, authProfileEpoch],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

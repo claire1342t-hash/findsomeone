@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
@@ -10,6 +11,8 @@ import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { EmailDomainHint } from "../components/EmailDomainHint.jsx";
+import { useEmailDomainSuggestion } from "../hooks/useEmailDomainSuggestion.js";
 import "./Account.css";
 
 /**
@@ -52,6 +55,7 @@ function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const emailSuggestion = useEmailDomainSuggestion(email);
 
   useEffect(() => {
     if (!loading && user) {
@@ -69,6 +73,11 @@ function Login() {
         const cred = await createUserWithEmailAndPassword(auth, emailNorm, password);
         const name = displayName.trim() || emailNorm.split("@")[0] || "User";
         await updateProfile(cred.user, { displayName: name });
+        try {
+          await sendEmailVerification(cred.user);
+        } catch (verifyErr) {
+          console.error("sendEmailVerification", verifyErr);
+        }
       } else {
         await signInWithEmailAndPassword(auth, emailNorm, password);
       }
@@ -116,6 +125,7 @@ function Login() {
                 required
                 autoComplete="email"
               />
+              <EmailDomainHint suggestion={emailSuggestion} onApply={setEmail} />
             </div>
             <div className="account-field">
               <label className="account-label" htmlFor="login-password">
