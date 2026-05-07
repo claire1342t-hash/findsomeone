@@ -35,11 +35,17 @@ import { useAuth } from "../context/AuthContext.jsx";
 import defaultAvatar from "../assets/illustrations/profile.png";
 import { AVATAR_OPTIONS, getAvatarById } from "../assets/avatarOptions.js";
 import { generateAnonymousName } from "../utils/generateAnonymousName.js";
-import { deletePostCascade, hasActiveChatsForPost, isPostExpired } from "../utils/postLifecycle.js";
+import {
+  deletePostCascade,
+  getPostExpiryBadge,
+  hasActiveChatsForPost,
+  isPostExpired,
+} from "../utils/postLifecycle.js";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import "./Account.css";
+import "./ChatList.css";
 
 /**
  * @param {unknown} err
@@ -185,7 +191,7 @@ function Profile() {
             rows
               .filter((d) => {
                 if (!d.exists()) return false;
-                if (isPostExpired(d.data()?.createdAt)) {
+                if (isPostExpired(d.data()?.createdAt, d.data()?.isPinned === true)) {
                   expiredIds.push(d.id);
                   return false;
                 }
@@ -289,7 +295,7 @@ function Profile() {
       onSnapshot(collection(db, "posts", post.id, "responses"), (snap) => {
         setPostResponsesByPostId((prev) => ({
           ...prev,
-          [post.id]: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+          [post.id]: snap.docs.map((d) => ({ ...d.data(), id: d.id })),
         }));
       }),
     );
@@ -736,10 +742,20 @@ function Profile() {
                 className="profile-scroll-block__inner"
               >
             <ul className="profile-post-list">
-              {posts.map((p) => (
+              {posts.map((p) => {
+                const postExpiryBadge = getPostExpiryBadge(p.createdAt, undefined, p.isPinned === true);
+                return (
                 <li key={p.id} className="profile-post-card">
                   <div className="profile-post-meta">
                     <time dateTime={createdAtIso(p.createdAt)}>{formatRelativeSmart(p.createdAt, language)}</time>
+                    <span className="profile-post-meta__grow" aria-hidden="true" />
+                    {postExpiryBadge ? (
+                      <span
+                        className={`profile-post-expiry profile-post-expiry--${postExpiryBadge.tone}`}
+                      >
+                        {t(postExpiryBadge.textKey)}
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       className="account-btn account-btn--ghost profile-post-delete-btn"
@@ -764,9 +780,10 @@ function Profile() {
                     <ul className="profile-post-response-list">
                       {(postResponsesByPostId[p.id] || []).map((resp) => {
                         const isPermanentlyClosed = String(resp.status || "") === "rejected" && Number(resp.attemptCount || 1) >= 2;
-                        const busyKey = `${p.id}:${resp.id}`;
+                        const responderKey = resp.responderUid || resp.id;
+                        const busyKey = `${p.id}:${responderKey}`;
                         return (
-                          <li key={resp.id} className="profile-post-response-item">
+                          <li key={responderKey} className="profile-post-response-item">
                             <div className="profile-post-response-answers">
                               <p className="profile-post-response-name">
                                 {(resp.responderAnonymousName || t("profile.anonymousPartner"))}
@@ -802,7 +819,7 @@ function Profile() {
                                 <button
                                   type="button"
                                   className="account-btn account-btn--primary profile-response-action-btn"
-                                  onClick={() => approveResponse(p.id, resp.id)}
+                                  onClick={() => approveResponse(p.id, responderKey)}
                                   disabled={!!responseActionBusy[busyKey]}
                                 >
                                   {t("profile.acceptResponse")}
@@ -810,7 +827,7 @@ function Profile() {
                                 <button
                                   type="button"
                                   className="account-btn account-btn--ghost profile-response-action-btn profile-response-action-btn--reject"
-                                  onClick={() => rejectResponse(p.id, resp.id)}
+                                  onClick={() => rejectResponse(p.id, responderKey)}
                                   disabled={!!responseActionBusy[busyKey]}
                                 >
                                   {t("profile.rejectResponse")}
@@ -823,7 +840,8 @@ function Profile() {
                     </ul>
                   ) : null}
                 </li>
-              ))}
+                );
+              })}
             </ul>
               </div>
             </div>
@@ -850,15 +868,33 @@ function Profile() {
               {repliedPosts.map((row) => {
                 const responseKind = getResponseStatusKind(row.response);
                 const kind = responseKind === "accepted" && row.chatDeleted ? "chatDeleted" : responseKind;
+                const repliedPostExpiryBadge = getPostExpiryBadge(
+                  row.post?.createdAt,
+                  undefined,
+                  row.post?.isPinned === true,
+                );
                 return (
                   <li key={row.path} className="profile-post-card">
-                    <div className="profile-response-meta">
-                      <div className="profile-response-meta-left">
-                        <span className={`profile-response-badge profile-response-badge--${kind}`}>{t(`profile.responseStatus.${kind}`)}</span>
-                      </div>
-                      <span className="profile-response-time">{formatRelativeSmart(row.response?.createdAt, language)}</span>
+                    <div className="profile-reply-title-row">
+                      <p className="profile-post-snippet profile-reply-title-row__title">
+                        {appearanceTitleFromPost(row.post, t)}
+                      </p>
+                      {repliedPostExpiryBadge ? (
+                        <span
+                          className={`chat-list-item__expiry profile-reply-title-row__expiry chat-list-item__expiry--${repliedPostExpiryBadge.tone}`}
+                        >
+                          {t(repliedPostExpiryBadge.textKey)}
+                        </span>
+                      ) : null}
                     </div>
-                    <p className="profile-post-snippet">{appearanceTitleFromPost(row.post, t)}</p>
+                    <div className="profile-reply-status-row">
+                      <span className={`profile-response-badge profile-response-badge--${kind}`}>
+                        {t(`profile.responseStatus.${kind}`)}
+                      </span>
+                      <span className="chat-list-item__time profile-reply-status-row__time">
+                        {formatRelativeSmart(row.response?.createdAt, language)}
+                      </span>
+                    </div>
                     {kind === "retry" ? (
                       <Link className="account-link-btn" to="/map">
                         {t("profile.retryOnMap")}

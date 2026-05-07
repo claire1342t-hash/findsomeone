@@ -283,14 +283,6 @@ export default async function handler(request) {
     });
   }
   console.log(`${LOG} post loaded`, { postId, authorUid });
-  const to = await getUserEmail(projectId, accessToken, authorUid);
-  if (!to) {
-    console.log(`${LOG} done: author_has_no_email (not sent)`);
-    return new Response(JSON.stringify({ ok: false, reason: "author_has_no_email" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
   try {
     if (kind === "mapResponseSubmitted") {
@@ -309,10 +301,18 @@ export default async function handler(request) {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const toPoster = await getUserEmail(projectId, accessToken, authorUid);
+      if (!toPoster) {
+        console.log(`${LOG} done: author_has_no_email (not sent)`);
+        return new Response(JSON.stringify({ ok: false, reason: "author_has_no_email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const resendBody = await sendResend({
         apiKey: resendKey,
         from: resendFrom,
-        to,
+        to: toPoster,
         subject:
           "【Findsomeone】有人回覆了你的貼文 | Someone replied to your post | あなたの投稿に返信がありました",
         text: buildTrilingualBody({
@@ -343,12 +343,34 @@ export default async function handler(request) {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const responseDoc = await firestoreGetDoc(
+        projectId,
+        accessToken,
+        `posts/${postId}/responses/${responseUserId}`,
+      );
+      if (!responseDoc) {
+        console.log(`${LOG} ABORT: response subdoc not found`, { postId, responseUserId });
+        return new Response(JSON.stringify({ error: "Response not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const responderUid = String(stringField(responseDoc, "responderUid") || responseUserId).trim() || responseUserId;
+      console.log(`${LOG} accept/reject mail recipient`, { responseUserId, responderUid });
+      const toResponder = await getUserEmail(projectId, accessToken, responderUid);
+      if (!toResponder) {
+        console.log(`${LOG} done: responder_has_no_email (not sent)`, { responderUid });
+        return new Response(JSON.stringify({ ok: false, reason: "responder_has_no_email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       let resendBody;
       if (kind === "posterAcceptedResponse") {
         resendBody = await sendResend({
           apiKey: resendKey,
           from: resendFrom,
-          to,
+          to: toResponder,
           subject:
             "【Findsomeone】貼文主已接受：可以開始匿名聊天 | Your response was accepted: anonymous chat is now open | 投稿者が承認しました：匿名チャットを開始できます",
           text: buildTrilingualBody({
@@ -362,7 +384,7 @@ export default async function handler(request) {
         resendBody = await sendResend({
           apiKey: resendKey,
           from: resendFrom,
-          to,
+          to: toResponder,
           subject:
             "【Findsomeone】貼文主標記為可能認錯了 | The post owner marked your response as not a match | 投稿者が「人違いの可能性あり」と判定しました",
           text: buildTrilingualBody({
