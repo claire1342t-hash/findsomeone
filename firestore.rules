@@ -141,5 +141,25 @@ service cloud.firestore {
           );
       }
     }
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.reportedBy == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          "type",
+          "targetId",
+          "reportedBy",
+          "reason",
+          "reasonDetail",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]);
+
+      allow read: if isSignedIn()
+        && (resource.data.reportedBy == request.auth.uid || isAdmin());
+
+      allow update, delete: if isAdmin();
+    }
   }
 }
