@@ -169,6 +169,8 @@ export const messages = {
     "profile.emailVerify.verifiedOk": "已偵測到信箱驗證完成，感謝你！",
     "profile.emailVerify.notVerifiedYet": "尚未偵測到驗證完成；若你已點過信中的連結，請稍候再按一次「重新整理狀態」。",
     "profile.emailVerify.errorTooMany": "寄送過於頻繁，請稍後再試。",
+    "profile.emailVerify.errorUnauthorizedContinueUri":
+      "驗證信回跳網址未授權：請在 Firebase Authentication → 已授權網域加入你的網域，並在 Vercel／.env 設定 REACT_APP_AUTH_CONTINUE_URL（完整網址，例如 https://www.findsomeone.co/profile）。",
     "profile.emailVerify.errorRecentLogin": "為了安全，請先登出後重新登入，再修改 Email。",
     "profile.emailVerify.errorNotAllowed": "目前無法寄送驗證信，請確認 Firebase 專案已啟用 Email/Password 驗證。",
     "profile.emailVerify.errorEmptyNew": "請輸入新的電子郵件。",
@@ -366,6 +368,8 @@ export const messages = {
     "profile.emailVerify.notVerifiedYet":
       "Still not verified. If you already clicked the link, wait a moment and tap “refresh status” again.",
     "profile.emailVerify.errorTooMany": "Too many requests. Please try again later.",
+    "profile.emailVerify.errorUnauthorizedContinueUri":
+      "This continue URL is not allowlisted. Add your domain under Firebase Authentication → Authorized domains, and set REACT_APP_AUTH_CONTINUE_URL (full URL, e.g. https://www.findsomeone.co/profile) in Vercel or .env.",
     "profile.emailVerify.errorRecentLogin": "For security, sign out, sign in again, then change your email.",
     "profile.emailVerify.errorNotAllowed": "Verification email is disabled. Check that Email/Password is enabled in Firebase.",
     "profile.emailVerify.errorEmptyNew": "Enter a new email address.",
@@ -562,6 +566,8 @@ export const messages = {
     "profile.emailVerify.notVerifiedYet":
       "まだ確認できていません。リンクを開いた場合は、少し待ってから「状態を更新」を再度押してください。",
     "profile.emailVerify.errorTooMany": "送信が多すぎます。しばらくしてからお試しください。",
+    "profile.emailVerify.errorUnauthorizedContinueUri":
+      "確認メールのリダイレクト先が未登録です。Firebase Authentication の Authorized domains にドメインを追加し、Vercel または .env に REACT_APP_AUTH_CONTINUE_URL（例：https://www.findsomeone.co/profile）を設定してください。",
     "profile.emailVerify.errorRecentLogin": "セキュリティのため、一度ログアウトして再ログインしてからメールを変更してください。",
     "profile.emailVerify.errorNotAllowed":
       "確認メールを送れません。Firebase でメール／パスワード認証が有効か確認してください。",

@@ -29,6 +29,7 @@ import { generateAnonymousName } from "../utils/generateAnonymousName.js";
 import { deletePostCascade, hasActiveChatsForPost, isPostExpired } from "../utils/postLifecycle.js";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import "./Account.css";
 
 /**
@@ -38,6 +39,7 @@ import "./Account.css";
 function emailVerifyErrorMessage(err, t) {
   const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
   if (code === "auth/too-many-requests") return t("profile.emailVerify.errorTooMany");
+  if (code === "auth/unauthorized-continue-uri") return t("profile.emailVerify.errorUnauthorizedContinueUri");
   if (code === "auth/requires-recent-login") return t("profile.emailVerify.errorRecentLogin");
   if (code === "auth/email-already-in-use") return t("login.errorEmailInUse");
   if (code === "auth/invalid-email") return t("login.errorInvalidEmail");
@@ -351,10 +353,7 @@ function Profile() {
     }
     setEmailVerifyOp("resend");
     try {
-      const action =
-        typeof window !== "undefined"
-          ? { url: `${window.location.origin}/profile`, handleCodeInApp: false }
-          : undefined;
+      const action = getEmailVerificationActionSettings();
       if (action) {
         await sendEmailVerification(current, action);
       } else {
@@ -413,10 +412,7 @@ function Profile() {
     }
     setEmailVerifyOp("newEmail");
     try {
-      const action =
-        typeof window !== "undefined"
-          ? { url: `${window.location.origin}/profile`, handleCodeInApp: false }
-          : undefined;
+      const action = getEmailVerificationActionSettings();
       if (action) {
         await verifyBeforeUpdateEmail(currentUser, next, action);
       } else {

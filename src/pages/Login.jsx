@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase.js";
+import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -74,7 +75,12 @@ function Login() {
         const name = displayName.trim() || emailNorm.split("@")[0] || "User";
         await updateProfile(cred.user, { displayName: name });
         try {
-          await sendEmailVerification(cred.user);
+          const action = getEmailVerificationActionSettings();
+          if (action) {
+            await sendEmailVerification(cred.user, action);
+          } else {
+            await sendEmailVerification(cred.user);
+          }
         } catch (verifyErr) {
           console.error("sendEmailVerification", verifyErr);
         }
