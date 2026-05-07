@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+
+/** Avoid second `sendEmailVerification` right after signup (register flow already sends one). */
+const VERIFICATION_RESEND_COOLDOWN_MS = 120_000;
+
+function msSinceUserCreation(u) {
+  const ct = u?.metadata?.creationTime;
+  if (!ct) return Number.POSITIVE_INFINITY;
+  return Date.now() - new Date(ct).getTime();
+}
 import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
 import { useEmailDomainSuggestion } from "../hooks/useEmailDomainSuggestion.js";
 import { Link, useNavigate } from "react-router-dom";
@@ -109,6 +118,8 @@ function Profile() {
   const [emailModifyOpen, setEmailModifyOpen] = useState(false);
   const [newEmailForVerify, setNewEmailForVerify] = useState("");
   const newEmailSuggestion = useEmailDomainSuggestion(newEmailForVerify);
+  /** Re-check cooldown timer so the resend button enables without full page reload. */
+  const [verificationCooldownTick, setVerificationCooldownTick] = useState(0);
 
   const expandedPostsKey = useMemo(
     () =>
@@ -125,6 +136,20 @@ function Profile() {
     onScroll: onPostsScroll,
     showFade: postsScrollShowFade,
   } = useBottomScrollFade(postsScrollKey);
+
+  const emailVerificationResendCooldownActive =
+    !!user &&
+    !user.emailVerified &&
+    userHasPasswordProvider(user) &&
+    msSinceUserCreation(user) < VERIFICATION_RESEND_COOLDOWN_MS;
+  void verificationCooldownTick;
+
+  useEffect(() => {
+    if (!user || user.emailVerified || !userHasPasswordProvider(user)) return;
+    if (msSinceUserCreation(user) >= VERIFICATION_RESEND_COOLDOWN_MS) return;
+    const id = setInterval(() => setVerificationCooldownTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [user]);
   const {
     ref: repliesScrollInnerRef,
     onScroll: onRepliesScroll,
@@ -340,6 +365,11 @@ function Profile() {
 
   const handleResendVerification = async () => {
     if (!user || emailVerifyBusy) return;
+    if (emailVerificationResendCooldownActive) {
+      setEmailVerifyError("");
+      setEmailVerifyInfo(t("profile.emailVerify.cooldownHint"));
+      return;
+    }
     setEmailVerifyError("");
     setEmailVerifyInfo("");
     const current = auth.currentUser;
@@ -361,8 +391,18 @@ function Profile() {
       }
       setEmailVerifyInfo(t("profile.emailVerify.sentResend"));
     } catch (err) {
-      console.error("[emailVerify] sendEmailVerification failed", err);
-      setEmailVerifyError(emailVerifyErrorMessage(err, t));
+      const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
+      if (code === "auth/too-many-requests") {
+        console.warn(
+          "[emailVerify] sendEmailVerification rate-limited (earlier send may have succeeded, e.g. right after signup)",
+          err,
+        );
+        setEmailVerifyError("");
+        setEmailVerifyInfo(t("profile.emailVerify.tooManyLikelySent"));
+      } else {
+        console.error("[emailVerify] sendEmailVerification failed", err);
+        setEmailVerifyError(emailVerifyErrorMessage(err, t));
+      }
     } finally {
       setEmailVerifyOp(null);
     }
@@ -593,7 +633,10 @@ function Profile() {
               <button
                 type="button"
                 className="account-btn account-btn--outline profile-email-verify-btn"
-                disabled={emailVerifyBusy}
+                disabled={emailVerifyBusy || emailVerificationResendCooldownActive}
+                title={
+                  emailVerificationResendCooldownActive ? t("profile.emailVerify.cooldownHint") : undefined
+                }
                 onClick={handleResendVerification}
               >
                 {emailVerifyOp === "resend" ? t("profile.emailVerify.sending") : t("profile.emailVerify.resend")}
@@ -622,6 +665,9 @@ function Profile() {
                 {emailVerifyOp === "refresh" ? t("profile.emailVerify.refreshing") : t("profile.emailVerify.refreshStatus")}
               </button>
             </div>
+            {emailVerificationResendCooldownActive ? (
+              <p className="profile-email-verify-cooldown">{t("profile.emailVerify.cooldownHint")}</p>
+            ) : null}
             <div className="profile-email-verify-feedback" aria-live="polite">
               {emailVerifyInfo ? <p className="profile-email-verify__ok">{emailVerifyInfo}</p> : null}
               {emailVerifyError ? (

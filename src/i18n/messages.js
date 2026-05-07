@@ -164,6 +164,10 @@ export const messages = {
     "profile.emailVerify.newEmail": "新的電子郵件",
     "profile.emailVerify.submitNew": "寄送驗證信到新信箱",
     "profile.emailVerify.cancelModify": "取消",
+    "profile.emailVerify.cooldownHint":
+      "註冊時系統已寄出一封驗證信。請先查看信箱（含垃圾信匣）。約 2 分鐘後可再按「重新寄送」。",
+    "profile.emailVerify.tooManyLikelySent":
+      "目前無法再寄（頻率限制），但你可能已收到稍早寄出的驗證信。請先檢查信箱（含垃圾信匣）；若仍沒有，請等幾分鐘後再試。",
     "profile.emailVerify.sentResend": "已重新寄出驗證信，請到信箱（含垃圾信匣）查看。",
     "profile.emailVerify.sentNew": "已寄出驗證信到新信箱，請開啟該信箱並點擊信中的連結完成變更。",
     "profile.emailVerify.verifiedOk": "已偵測到信箱驗證完成，感謝你！",
@@ -362,6 +366,10 @@ export const messages = {
     "profile.emailVerify.newEmail": "New email",
     "profile.emailVerify.submitNew": "Send verification to new email",
     "profile.emailVerify.cancelModify": "Cancel",
+    "profile.emailVerify.cooldownHint":
+      "A verification email was already sent when you signed up. Check your inbox and spam first. You can resend after about 2 minutes.",
+    "profile.emailVerify.tooManyLikelySent":
+      "Sending is temporarily limited, but an email may already be on the way. Check your inbox and spam; if nothing arrives, try again in a few minutes.",
     "profile.emailVerify.sentResend": "Verification email sent again. Check your inbox and spam folder.",
     "profile.emailVerify.sentNew": "Verification email sent to the new address. Open it and tap the link to finish.",
     "profile.emailVerify.verifiedOk": "Your email is verified. Thanks!",
@@ -560,6 +568,10 @@ export const messages = {
     "profile.emailVerify.newEmail": "新しいメールアドレス",
     "profile.emailVerify.submitNew": "新しい宛先に確認メールを送る",
     "profile.emailVerify.cancelModify": "キャンセル",
+    "profile.emailVerify.cooldownHint":
+      "登録時に確認メールを送信済みです。受信トレイと迷惑メールフォルダを先にご確認ください。再送は約2分後にできます。",
+    "profile.emailVerify.tooManyLikelySent":
+      "送信回数の制限のため今は再送できませんが、先ほどのメールは届いている可能性があります。受信トレイと迷惑メールをご確認のうえ、届かない場合は数分後にお試しください。",
     "profile.emailVerify.sentResend": "確認メールを再送しました。受信トレイと迷惑メールフォルダをご確認ください。",
     "profile.emailVerify.sentNew": "新しい宛先に確認メールを送りました。メール内のリンクを開いて手続きを完了してください。",
     "profile.emailVerify.verifiedOk": "メール確認が完了しました。ありがとうございます。",
