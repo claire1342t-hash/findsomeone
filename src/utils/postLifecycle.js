@@ -2,11 +2,43 @@ import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/fire
 import { db } from "../firebase.js";
 
 const POST_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
+const MS_PER_DAY = 86400000;
 
-export function isPostExpired(createdAt) {
+export function isPostExpired(createdAt, isPinned = false) {
+  if (isPinned === true) return false;
   const createdMs = createdAt?.toDate?.()?.getTime?.();
   if (!createdMs) return false;
   return Date.now() - createdMs >= POST_EXPIRE_MS;
+}
+
+/**
+ * Same rules as chat list: badge only when ≤3 days remain until post expiry (createdAt + 7 days).
+ * Reuses i18n keys `chat.expiresBadge*`.
+ *
+ * @returns {{ textKey: string, tone: "gray" | "orange" | "red" } | null}
+ */
+export function getPostExpiryBadge(createdAt, now = new Date(), isPinned = false) {
+  if (isPinned === true) return null;
+  const createdMs = createdAt?.toDate?.()?.getTime?.();
+  if (!createdMs) return null;
+  const expireMs = createdMs + POST_EXPIRE_MS;
+  const msLeft = expireMs - now.getTime();
+  if (msLeft <= 0) return null;
+  const ceilDays = Math.ceil(msLeft / MS_PER_DAY);
+  if (ceilDays > 3) return null;
+  if (ceilDays === 3) {
+    return { textKey: "chat.expiresBadgeThree", tone: "gray" };
+  }
+  if (ceilDays === 2) {
+    return { textKey: "chat.expiresBadgeTwo", tone: "orange" };
+  }
+  if (ceilDays === 1) {
+    if (msLeft < MS_PER_DAY) {
+      return { textKey: "chat.expiresBadgeLessOne", tone: "red" };
+    }
+    return { textKey: "chat.expiresBadgeOne", tone: "red" };
+  }
+  return null;
 }
 
 export async function deleteChatCascade(chatId) {

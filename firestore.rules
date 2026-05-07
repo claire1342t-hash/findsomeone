@@ -4,9 +4,18 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
     function ownsPostById(postId) {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId)).data.authorUid == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
 
     match /users/{userId} {

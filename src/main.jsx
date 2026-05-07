@@ -13,6 +13,7 @@ import Profile from "./pages/Profile.jsx";
 import ChatPage from "./pages/Chat.jsx";
 import ChatListPage from "./pages/ChatList.jsx";
 import About from "./pages/About.jsx";
+import AdminPage from "./pages/Admin.jsx";
 
 const ROOT_KEY = "__findsomeone_app_root__";
 
@@ -38,6 +39,7 @@ root.render(
             <Route path="/about" element={<About />} />
             <Route path="/chat" element={<ChatListPage />} />
             <Route path="/chat/:chatId" element={<ChatPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

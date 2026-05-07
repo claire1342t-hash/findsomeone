@@ -4,9 +4,12 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   signInWithEmailAndPassword,
+  signOut,
   updateProfile,
 } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase.js";
+import { db } from "../firebase.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -41,6 +44,9 @@ function friendlyAuthError(err, t) {
   }
   if (code === "auth/invalid-email") {
     return t("login.errorInvalidEmail");
+  }
+  if (code === "app/user-banned") {
+    return t("login.errorBanned");
   }
   return t("login.errorGeneric");
 }
@@ -85,7 +91,14 @@ function Login() {
           console.error("sendEmailVerification", verifyErr);
         }
       } else {
-        await signInWithEmailAndPassword(auth, emailNorm, password);
+        const cred = await signInWithEmailAndPassword(auth, emailNorm, password);
+        const userSnap = await getDoc(doc(db, "users", cred.user.uid));
+        if (userSnap.exists() && userSnap.data()?.isBanned === true) {
+          await signOut(auth);
+          const bannedErr = new Error("user banned");
+          bannedErr.code = "app/user-banned";
+          throw bannedErr;
+        }
       }
       navigate("/profile", { replace: true });
     } catch (err) {

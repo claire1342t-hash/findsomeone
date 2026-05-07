@@ -18,6 +18,7 @@ export function SiteHeader() {
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
   const [avatarId, setAvatarId] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
   const profileHref = user ? "/profile" : "/login";
   const profileAria = user ? t("meta.profileAriaUser") : t("meta.profileAriaGuest");
   const avatarSrc = user ? getAvatarById(avatarId) : profileImg;
@@ -28,6 +29,7 @@ export function SiteHeader() {
     return onSnapshot(ref, (snap) => {
       const id = Number(snap.data()?.avatarId);
       setAvatarId(id >= 1 && id <= 12 ? id : 1);
+      setIsAdmin(snap.data()?.isAdmin === true);
     });
   }, [user]);
 
@@ -42,6 +44,11 @@ export function SiteHeader() {
             {t(key)}
           </Link>
         ))}
+        {user && isAdmin ? (
+          <Link className="top-nav-link" to="/admin">
+            {t("nav.admin")}
+          </Link>
+        ) : null}
       </nav>
       <div className="top-nav-right" role="group" aria-label="Language and profile">
         <div className="lang-switcher">

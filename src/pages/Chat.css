@@ -66,6 +66,10 @@
   font-weight: 700;
 }
 
+.chat-report-btn {
+  margin-bottom: 8px;
+}
+
 .chat-end-btn:hover {
   background: #D32F2F;
   border-color: #D32F2F;
@@ -187,6 +191,93 @@
 
 .chat-back-link:hover {
   transform: translateY(-1px);
+}
+
+.chat-report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+}
+
+.chat-report-modal {
+  width: min(360px, calc(100% - 24px));
+  border-radius: 14px;
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  padding: 14px;
+}
+
+.chat-report-modal h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.chat-report-modal__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #5f615f;
+}
+
+.chat-report-modal__select {
+  border: 1px solid #d0d0d0;
+  border-radius: 9px;
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.chat-report-modal__textarea {
+  border: 1px solid #d0d0d0;
+  border-radius: 9px;
+  min-height: 84px;
+  padding: 8px 10px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.chat-report-modal__error {
+  margin: 8px 0 0;
+  color: #b00020;
+  font-size: 12px;
+}
+
+.chat-report-modal__ok {
+  margin: 4px 0 0;
+  color: #3d3f3d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-report-modal__actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat-report-modal__btn {
+  border-radius: 9px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d4d4d4;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-report-modal__btn--ghost {
+  background: #f3f3f3;
+  color: #444;
+}
+
+.chat-report-modal__btn--primary {
+  background: #1f1f21;
+  border-color: #1f1f21;
+  color: #fff;
 }
 
 @media (max-width: 730px) {

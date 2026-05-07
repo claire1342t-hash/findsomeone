@@ -11,6 +11,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
@@ -35,6 +36,12 @@ export default function ChatPage() {
   const [text, setText] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("不當內容");
+  const [reportOtherText, setReportOtherText] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportSubmittedForChat, setReportSubmittedForChat] = useState(false);
   const messagesBottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -142,6 +149,61 @@ export default function ChatPage() {
     }
   };
 
+  const submitChatReport = async () => {
+    if (!chatId || !user) return;
+    const trimmedOther = reportOtherText.trim();
+    if (reportReason === "其他" && !trimmedOther) {
+      setReportError("請填寫其他原因內容。");
+      return;
+    }
+    setReportBusy(true);
+    setReportError("");
+    try {
+      await addDoc(collection(db, "reports"), {
+        type: "chat",
+        targetId: chatId,
+        reportedBy: user.uid,
+        reason: reportReason,
+        reasonDetail: reportReason === "其他" ? trimmedOther : "",
+        createdAt: serverTimestamp(),
+        status: "pending",
+      });
+      setReportSubmittedForChat(true);
+      setReportReason("不當內容");
+      setReportOtherText("");
+    } catch (err) {
+      console.error(err);
+      setReportError(err.message || String(err));
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
+  const openChatReportModal = async () => {
+    if (!chatId) return;
+    setReportOpen(true);
+    setReportError("");
+    setReportReason("不當內容");
+    setReportOtherText("");
+    if (!user) {
+      setReportSubmittedForChat(false);
+      return;
+    }
+    try {
+      const q = query(
+        collection(db, "reports"),
+        where("type", "==", "chat"),
+        where("targetId", "==", chatId),
+        where("reportedBy", "==", user.uid),
+      );
+      const snap = await getDocs(q);
+      setReportSubmittedForChat(!snap.empty);
+    } catch (err) {
+      console.error(err);
+      setReportSubmittedForChat(false);
+    }
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -162,6 +224,13 @@ export default function ChatPage() {
                 </button>
                 {menuOpen ? (
                   <div className="chat-menu">
+                    <button
+                      type="button"
+                      className="chat-end-btn chat-report-btn"
+                      onClick={openChatReportModal}
+                    >
+                      檢舉
+                    </button>
                     <button type="button" className="chat-end-btn" onClick={endChat}>
                       {t("chat.endButton")}
                     </button>
@@ -212,6 +281,75 @@ export default function ChatPage() {
           {t("chat.backToProfile")}
         </Link>
       </main>
+      {reportOpen ? (
+        <div className="chat-report-modal-backdrop" role="dialog" aria-modal="true" aria-label="檢舉聊天室">
+          <div className="chat-report-modal">
+            <h3>檢舉聊天室</h3>
+            {reportSubmittedForChat ? (
+              <>
+                <p className="chat-report-modal__ok">您的檢舉已送出，我們會盡快處理。</p>
+                <div className="chat-report-modal__actions">
+                  <button
+                    type="button"
+                    className="chat-report-modal__btn chat-report-modal__btn--primary"
+                    onClick={() => {
+                      setReportOpen(false);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    確定
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="chat-report-modal__label">
+                  原因
+                  <select
+                    className="chat-report-modal__select"
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                  >
+                    <option value="不當內容">不當內容</option>
+                    <option value="騷擾">騷擾</option>
+                    <option value="垃圾訊息">垃圾訊息</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </label>
+                {reportReason === "其他" ? (
+                  <label className="chat-report-modal__label">
+                    其他內容
+                    <textarea
+                      className="chat-report-modal__textarea"
+                      value={reportOtherText}
+                      onChange={(e) => setReportOtherText(e.target.value)}
+                      placeholder="請輸入補充內容"
+                    />
+                  </label>
+                ) : null}
+                {reportError ? <p className="chat-report-modal__error">{reportError}</p> : null}
+                <div className="chat-report-modal__actions">
+                  <button
+                    type="button"
+                    className="chat-report-modal__btn chat-report-modal__btn--ghost"
+                    onClick={() => setReportOpen(false)}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-report-modal__btn chat-report-modal__btn--primary"
+                    disabled={reportBusy}
+                    onClick={submitChatReport}
+                  >
+                    {reportBusy ? t("post.saving") : "送出檢舉"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

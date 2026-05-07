@@ -294,13 +294,42 @@
   align-items: center;
 }
 
+.profile-post-meta__grow {
+  flex: 1 1 auto;
+  min-width: 4px;
+}
+
+.profile-post-expiry {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #2a2a2a;
+}
+
+.profile-post-expiry--gray {
+  background: #d8d8d8;
+  color: #2a2a2a;
+}
+
+.profile-post-expiry--orange {
+  background: #f57c00;
+  color: #1a1a1a;
+}
+
+.profile-post-expiry--red {
+  background: #c62828;
+  color: #fff;
+}
+
 .profile-post-motivation {
   font-weight: 600;
   color: #4a4a4a;
 }
 
 .profile-post-delete-btn {
-  margin-left: auto;
   width: 30px;
   height: 30px;
   min-width: 30px;
@@ -320,6 +349,39 @@
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink);
+}
+
+.profile-reply-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.profile-reply-title-row__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.profile-reply-title-row__expiry {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.profile-reply-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.profile-reply-status-row__time {
+  flex-shrink: 0;
+  margin-left: auto;
+  text-align: right;
 }
 
 .profile-post-coords {
@@ -448,6 +510,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.profile-response-meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .profile-response-badge {

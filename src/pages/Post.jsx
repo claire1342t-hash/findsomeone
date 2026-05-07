@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { collection, doc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -127,6 +127,11 @@ function Post() {
     setSubmitSuccess(false);
     if (!user) {
       setSubmitError(t("post.needLogin"));
+      return;
+    }
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (userSnap.exists() && userSnap.data()?.isBanned === true) {
+      setSubmitError(t("post.errorBanned"));
       return;
     }
     if (!pin) {

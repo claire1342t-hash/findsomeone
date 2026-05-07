@@ -7,21 +7,24 @@ import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { generateAnonymousName } from "../utils/generateAnonymousName.js";
-import { deletePostCascade, isPostExpired } from "../utils/postLifecycle.js";
+import { deletePostCascade, getPostExpiryBadge, isPostExpired } from "../utils/postLifecycle.js";
 import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import "./Map.css";
@@ -141,6 +144,12 @@ function MapPage() {
   const [verifySubmitted, setVerifySubmitted] = useState(false);
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [previousRejectedOnce, setPreviousRejectedOnce] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("不當內容");
+  const [reportOtherText, setReportOtherText] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportSubmittedForPost, setReportSubmittedForPost] = useState(false);
 
   const sortedClusterPosts = useMemo(
     () => [...clusterPosts].sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt)),
@@ -148,6 +157,10 @@ function MapPage() {
   );
 
   const selectedPost = sortedClusterPosts.find((item) => item.id === selectedPostId) ?? null;
+  const selectedPostExpiryBadge = useMemo(
+    () => (selectedPost ? getPostExpiryBadge(selectedPost.createdAt, new Date(), selectedPost.isPinned === true) : null),
+    [selectedPost],
+  );
 
   const leftScrollKey = useMemo(
     () => `${sortedClusterPosts.map((p) => p.id).join(",")}-${selectedPostId}`,
@@ -167,7 +180,7 @@ function MapPage() {
       const expiredPostIds = [];
       snap.docs.forEach((docItem) => {
         const data = docItem.data();
-        if (isPostExpired(data.createdAt)) {
+        if (isPostExpired(data.createdAt, data.isPinned === true)) {
           expiredPostIds.push(docItem.id);
           return;
         }
@@ -197,6 +210,12 @@ function MapPage() {
     setVerifySubmitted(false);
     setVerifyLocked(false);
     setPreviousRejectedOnce(false);
+    setReportOpen(false);
+    setReportReason("不當內容");
+    setReportOtherText("");
+    setReportBusy(false);
+    setReportError("");
+    setReportSubmittedForPost(false);
   };
 
   const resetVerificationState = () => {
@@ -208,6 +227,66 @@ function MapPage() {
     setVerifySubmitted(false);
     setVerifyLocked(false);
     setPreviousRejectedOnce(false);
+  };
+
+  const submitPostReport = async () => {
+    if (!selectedPost) return;
+    if (!user) {
+      setReportError(t("map.verifyLoginRequired"));
+      return;
+    }
+    setReportBusy(true);
+    setReportError("");
+    const trimmedOther = reportOtherText.trim();
+    if (reportReason === "其他" && !trimmedOther) {
+      setReportBusy(false);
+      setReportError("請填寫其他原因內容。");
+      return;
+    }
+    try {
+      await addDoc(collection(db, "reports"), {
+        type: "post",
+        targetId: selectedPost.id,
+        reportedBy: user.uid,
+        reason: reportReason,
+        reasonDetail: reportReason === "其他" ? trimmedOther : "",
+        createdAt: serverTimestamp(),
+        status: "pending",
+      });
+      setReportSubmittedForPost(true);
+      setReportError("");
+      setReportOtherText("");
+    } catch (err) {
+      console.error(err);
+      setReportError(err.message || String(err));
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
+  const openReportModal = async () => {
+    if (!selectedPost) return;
+    setReportOpen(true);
+    setReportError("");
+    setReportReason("不當內容");
+    setReportOtherText("");
+    if (!user) {
+      setReportSubmittedForPost(false);
+      return;
+    }
+    try {
+      const q = query(
+        collection(db, "reports"),
+        where("type", "==", "post"),
+        where("targetId", "==", selectedPost.id),
+        where("reportedBy", "==", user.uid),
+      );
+      const snap = await getDocs(q);
+      setReportSubmittedForPost(!snap.empty);
+    } catch (err) {
+      console.error(err);
+      setReportSubmittedForPost(false);
+    }
   };
 
   useEffect(() => {
@@ -346,7 +425,9 @@ function MapPage() {
                 <p className="map-sheet__empty">{posts.length === 0 ? t("map.noPosts") : t("map.emptyCluster")}</p>
               ) : (
                 <ul className="map-sheet__list">
-                  {sortedClusterPosts.map((post) => (
+                  {sortedClusterPosts.map((post) => {
+                    const postExpiryBadge = getPostExpiryBadge(post.createdAt, new Date(), post.isPinned === true);
+                    return (
                     <li key={post.id}>
                       <button
                         type="button"
@@ -356,14 +437,24 @@ function MapPage() {
                           resetVerificationState();
                         }}
                       >
-                        <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
+                        <div className="map-post-card__head">
+                          <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
+                          {postExpiryBadge ? (
+                            <span
+                              className={`map-post-card__expiry map-post-card__expiry--${postExpiryBadge.tone}`}
+                            >
+                              {t(postExpiryBadge.textKey)}
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="map-post-card__meta">
                           <span>{post.locationDescription || t("map.locationFallback")}</span>
                           <span>{formatRelativeCalendarDay(post.createdAt, language)}</span>
                         </p>
                       </button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -374,7 +465,16 @@ function MapPage() {
               className={`map-sheet__right-wrap ${rightShowFade ? "map-sheet__right-wrap--bottom-fade" : ""}`}
             >
             <aside className="map-sheet__right" ref={rightScrollRef} onScroll={onRightScroll}>
-              <h2 className="map-detail__title">{getAppearanceTitle(selectedPost, t)}</h2>
+              <h2 className="map-detail__title">
+                <span className="map-detail__title-text">{getAppearanceTitle(selectedPost, t)}</span>
+                {selectedPostExpiryBadge ? (
+                  <span
+                    className={`map-detail__title-expiry map-post-card__expiry--${selectedPostExpiryBadge.tone}`}
+                  >
+                    {t(selectedPostExpiryBadge.textKey)}
+                  </span>
+                ) : null}
+              </h2>
               <div className="map-detail__title-divider" aria-hidden="true" />
               <div className="map-detail__section map-detail__section--plain">
                 <p className="map-detail__story-label">{t("map.storyLabel")}</p>
@@ -398,14 +498,24 @@ function MapPage() {
                   {formatDate(selectedPost.createdAt, language)}
                 </p>
               </div>
-              <button
-                type="button"
-                className="map-detail__cta"
-                onClick={() => setVerifyOpen((prev) => !prev)}
-                disabled={isOwnPost}
-              >
-                {t("map.cta")}
-              </button>
+              <div className="map-detail__cta-row">
+                <button
+                  type="button"
+                  className="map-detail__cta"
+                  onClick={() => setVerifyOpen((prev) => !prev)}
+                  disabled={isOwnPost}
+                >
+                  {t("map.cta")}
+                </button>
+                <button
+                  type="button"
+                  className="map-detail__report-trigger"
+                  onClick={openReportModal}
+                  aria-label="檢舉貼文"
+                >
+                  !
+                </button>
+              </div>
               <section className={`map-verify ${verifyOpen ? "is-open" : ""}`} aria-hidden={!verifyOpen}>
                 {verifyOpen ? (
                   verifyLocked ? (
@@ -449,6 +559,59 @@ function MapPage() {
                 ) : null}
               </section>
             </aside>
+            {reportOpen ? (
+              <div className="report-modal-backdrop" role="dialog" aria-modal="true" aria-label="檢舉貼文">
+                <div className="report-modal">
+                  <h3>檢舉貼文</h3>
+                  {reportSubmittedForPost ? (
+                    <>
+                      <p className="report-modal__ok">您的檢舉已送出，我們會盡快處理。</p>
+                      <div className="report-modal__actions">
+                        <button type="button" className="report-modal__btn report-modal__btn--primary" onClick={() => setReportOpen(false)}>
+                          確定
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="report-modal__label">
+                        原因
+                        <select
+                          className="report-modal__select"
+                          value={reportReason}
+                          onChange={(e) => setReportReason(e.target.value)}
+                        >
+                          <option value="不當內容">不當內容</option>
+                          <option value="騷擾">騷擾</option>
+                          <option value="垃圾訊息">垃圾訊息</option>
+                          <option value="其他">其他</option>
+                        </select>
+                      </label>
+                      {reportReason === "其他" ? (
+                        <label className="report-modal__label">
+                          其他內容
+                          <textarea
+                            className="report-modal__textarea"
+                            value={reportOtherText}
+                            onChange={(e) => setReportOtherText(e.target.value)}
+                            placeholder="請輸入補充內容"
+                          />
+                        </label>
+                      ) : null}
+                      {reportError ? <p className="report-modal__error">{reportError}</p> : null}
+                      <div className="report-modal__actions">
+                        <button type="button" className="report-modal__btn report-modal__btn--ghost" onClick={() => setReportOpen(false)}>
+                          取消
+                        </button>
+                        <button type="button" className="report-modal__btn report-modal__btn--primary" disabled={reportBusy} onClick={submitPostReport}>
+                          {reportBusy ? t("post.saving") : "送出檢舉"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null}
             </div>
           ) : null}
         </section>
