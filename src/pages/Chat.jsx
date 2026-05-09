@@ -18,6 +18,7 @@ import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import "./Chat.css";
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
@@ -168,6 +169,11 @@ export default function ChatPage() {
         createdAt: serverTimestamp(),
         status: "pending",
       });
+      try {
+        await sendEmail({ kind: "reportSubmitted", reportType: "chat", targetId: chatId });
+      } catch (mailErr) {
+        console.error("[Chat] report admin notify email failed", mailErr);
+      }
       setReportSubmittedForChat(true);
       setReportReason("不當內容");
       setReportOtherText("");

@@ -253,6 +253,11 @@ function MapPage() {
         createdAt: serverTimestamp(),
         status: "pending",
       });
+      try {
+        await sendEmail({ kind: "reportSubmitted", reportType: "post", targetId: selectedPost.id });
+      } catch (mailErr) {
+        console.error("[Map] report admin notify email failed", mailErr);
+      }
       setReportSubmittedForPost(true);
       setReportError("");
       setReportOtherText("");

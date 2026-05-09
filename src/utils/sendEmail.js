@@ -8,7 +8,13 @@ const LOG = "[sendEmail:client]";
  *
  * Optional: `REACT_APP_SEND_EMAIL_URL` — full URL if the API is not same-origin (e.g. preview).
  *
- * @param {{ kind: string, postId: string, responseUserId?: string }} payload
+ * @param {{
+ *   kind: string;
+ *   postId?: string;
+ *   responseUserId?: string;
+ *   reportType?: "post" | "chat";
+ *   targetId?: string;
+ * }} payload
  */
 export async function sendEmail(payload) {
   console.log(`${LOG} invoked`, { kind: payload?.kind, postId: payload?.postId, hasResponseUserId: !!payload?.responseUserId });

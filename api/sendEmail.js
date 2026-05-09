@@ -8,6 +8,7 @@
  * - RESEND_FROM
  * - FIREBASE_WEB_API_KEY (same as client REACT_APP_FIREBASE_API_KEY)
  * - FIREBASE_SERVICE_ACCOUNT_JSON (full service account JSON string)
+ * - REPORT_NOTIFY_EMAIL (admin inbox for new report notifications; optional — if unset, reportSubmitted returns ok:false)
  *
  * Debug: Vercel Dashboard → project → Logs (or Functions → select deployment → Logs).
  * Search for prefix `[sendEmail]`.
@@ -244,8 +245,53 @@ export default async function handler(request) {
     });
   }
 
-  const { kind, postId, responseUserId } = body ?? {};
-  console.log(`${LOG} payload`, { kind, postId, responseUserId });
+  const { kind, postId, responseUserId, reportType, targetId } = body ?? {};
+  console.log(`${LOG} payload`, { kind, postId, responseUserId, reportType, targetId });
+
+  /** Notify admin when a user submits a report (no Firestore recipient lookup). */
+  if (kind === "reportSubmitted") {
+    const notifyTo = String(process.env.REPORT_NOTIFY_EMAIL || "").trim();
+    if (!notifyTo) {
+      console.log(`${LOG} reportSubmitted: REPORT_NOTIFY_EMAIL not set — skipping mail`);
+      return new Response(JSON.stringify({ ok: false, reason: "notify_email_not_configured" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (reportType !== "post" && reportType !== "chat") {
+      return new Response(JSON.stringify({ error: "reportType must be post or chat" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!targetId || typeof targetId !== "string") {
+      return new Response(JSON.stringify({ error: "targetId required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const simpleLine = "Findsomeone有新的檢舉";
+    try {
+      const resendBody = await sendResend({
+        apiKey: resendKey,
+        from: resendFrom,
+        to: notifyTo,
+        subject: simpleLine,
+        text: simpleLine,
+      });
+      console.log(`${LOG} SUCCESS reportSubmitted`, { reportType, targetId, resendBody });
+      return new Response(JSON.stringify({ ok: true, resend: resendBody }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.log(`${LOG} EXCEPTION reportSubmitted`, String(e?.message || e));
+      return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   if (!postId || typeof postId !== "string") {
     return new Response(JSON.stringify({ error: "postId required" }), {
