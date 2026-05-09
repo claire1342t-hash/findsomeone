@@ -167,6 +167,7 @@ export default function ChatPage() {
         reason: reportReason,
         reasonDetail: reportReason === "其他" ? trimmedOther : "",
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         status: "pending",
       });
       try {
