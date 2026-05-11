@@ -1,5 +1,6 @@
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
+import aboutPagePic from "../assets/illustrations/about_page_pic.png";
 import "./About.css";
 
 function About() {
@@ -13,6 +14,7 @@ function About() {
           </div>
         </section>
       </main>
+      <img className="about-corner-image" src={aboutPagePic} alt="" aria-hidden="true" />
       <Footer />
     </div>
   );
