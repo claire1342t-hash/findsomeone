@@ -367,11 +367,15 @@ function MapPage() {
         },
         { merge: true },
       );
-      await upsertRepliedPostIndex(db, user.uid, selectedPost.id, {
-        respondedAt: serverTimestamp(),
-        status: "pending",
-        attemptCount: nextAttemptCount,
-      });
+      try {
+        await upsertRepliedPostIndex(db, user.uid, selectedPost.id, {
+          respondedAt: serverTimestamp(),
+          status: "pending",
+          attemptCount: nextAttemptCount,
+        });
+      } catch (indexErr) {
+        console.error("[Map] repliedPosts index write failed", indexErr);
+      }
 
       try {
         await sendEmail({ kind: "mapResponseSubmitted", postId: selectedPost.id });

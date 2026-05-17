@@ -44,7 +44,12 @@ import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { beginMatchCelebration } from "../utils/matchCelebration.js";
-import { backfillRepliedPostsIndex, upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
+import {
+  backfillRepliedPostsIndex,
+  enrichRepliedPostIndexDocs,
+  loadRepliedPostsFromResponses,
+  upsertRepliedPostIndex,
+} from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription, appearanceTitleFromPost } from "../utils/postAppearance.js";
 import "./Account.css";
 import "./ChatList.css";
@@ -113,6 +118,7 @@ function Profile() {
   const [repliedPostsError, setRepliedPostsError] = useState("");
   const repliedPostsLoadGenRef = useRef(0);
   const repliedPostsBackfillAttemptedRef = useRef(false);
+  const repliedPostsBackfillInFlightRef = useRef(false);
   const [saveError, setSaveError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -242,95 +248,63 @@ function Profile() {
     setRepliedPostsLoading(true);
     setRepliedPostsError("");
 
-    const q = query(collection(db, "users", user.uid, "repliedPosts"), orderBy("respondedAt", "desc"));
+    const indexCol = collection(db, "users", user.uid, "repliedPosts");
+
+    const applyRows = (rows, loadGen) => {
+      if (cancelled || loadGen !== repliedPostsLoadGenRef.current) return;
+      setRepliedPosts(rows);
+      setRepliedPostsError("");
+      setRepliedPostsLoading(false);
+    };
+
+    const loadFromResponsesFallback = async (loadGen) => {
+      try {
+        const rows = await loadRepliedPostsFromResponses(db, user.uid);
+        applyRows(rows, loadGen);
+      } catch (err) {
+        console.error("[Profile] repliedPosts collectionGroup fallback failed", err);
+        if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
+          setRepliedPostsError(t("profile.repliesLoadError"));
+          setRepliedPostsLoading(false);
+        }
+      }
+    };
+
     const unsub = onSnapshot(
-      q,
+      indexCol,
       (snap) => {
         const loadGen = (repliedPostsLoadGenRef.current += 1);
         void (async () => {
-          if (snap.empty) {
-            if (!repliedPostsBackfillAttemptedRef.current) {
-              repliedPostsBackfillAttemptedRef.current = true;
-              try {
-                const migrated = await backfillRepliedPostsIndex(db, user.uid);
-                if (migrated === 0 && !cancelled && loadGen === repliedPostsLoadGenRef.current) {
-                  setRepliedPosts([]);
-                  setRepliedPostsError("");
-                  setRepliedPostsLoading(false);
-                }
-              } catch (err) {
-                console.error("[Profile] repliedPosts backfill failed", err);
-                if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
-                  setRepliedPostsError(t("profile.repliesLoadError"));
-                  setRepliedPostsLoading(false);
-                }
-              }
-              return;
-            }
-            if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
-              setRepliedPosts([]);
-              setRepliedPostsError("");
-              setRepliedPostsLoading(false);
-            }
+          if (repliedPostsBackfillInFlightRef.current) return;
+
+          if (!snap.empty) {
+            const enriched = await enrichRepliedPostIndexDocs(db, user.uid, snap.docs);
+            applyRows(enriched, loadGen);
             return;
           }
 
-          const rows = snap.docs.map((indexDoc) => ({
-            postId: indexDoc.id,
-            index: indexDoc.data(),
-          }));
+          if (!repliedPostsBackfillAttemptedRef.current) {
+            repliedPostsBackfillAttemptedRef.current = true;
+            repliedPostsBackfillInFlightRef.current = true;
+            try {
+              const migrated = await backfillRepliedPostsIndex(db, user.uid);
+              if (migrated > 0) return;
+            } catch (err) {
+              console.error("[Profile] repliedPosts backfill failed", err);
+            } finally {
+              repliedPostsBackfillInFlightRef.current = false;
+            }
+            await loadFromResponsesFallback(loadGen);
+            return;
+          }
 
-          const enriched = await Promise.all(
-            rows.map(async ({ postId, index }) => {
-              const path = `posts/${postId}/responses/${user.uid}`;
-              try {
-                const postSnap = await getDoc(doc(db, "posts", postId));
-                const chatId = typeof index.chatId === "string" ? index.chatId : "";
-                let chatDeleted = false;
-                if (chatId) {
-                  const chatSnap = await getDoc(doc(db, "chats", chatId));
-                  chatDeleted = !chatSnap.exists();
-                }
-                return {
-                  path,
-                  response: {
-                    status: index.status,
-                    attemptCount: index.attemptCount,
-                    createdAt: index.respondedAt,
-                    chatId,
-                  },
-                  post: postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } : null,
-                  chatDeleted,
-                };
-              } catch (err) {
-                console.error("[Profile] enrich replied post failed", postId, err);
-                return {
-                  path,
-                  response: {
-                    status: index.status,
-                    attemptCount: index.attemptCount,
-                    createdAt: index.respondedAt,
-                    chatId: index.chatId,
-                  },
-                  post: null,
-                  chatDeleted: false,
-                };
-              }
-            }),
-          );
-
-          if (cancelled || loadGen !== repliedPostsLoadGenRef.current) return;
-          setRepliedPosts(enriched);
-          setRepliedPostsError("");
-          setRepliedPostsLoading(false);
+          await loadFromResponsesFallback(loadGen);
         })();
       },
       (err) => {
         console.error("[Profile] repliedPosts listener error", err);
-        if (!cancelled) {
-          setRepliedPostsError(t("profile.repliesLoadError"));
-          setRepliedPostsLoading(false);
-        }
+        const loadGen = (repliedPostsLoadGenRef.current += 1);
+        void loadFromResponsesFallback(loadGen);
       },
     );
 

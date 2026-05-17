@@ -7,7 +7,7 @@
     },
     {
       "collectionGroup": "repliedPosts",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [{ "fieldPath": "respondedAt", "order": "DESCENDING" }]
     }
   ],
