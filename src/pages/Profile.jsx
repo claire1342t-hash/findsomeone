@@ -348,7 +348,7 @@ function Profile() {
   }, [postResponsesByPostId]);
 
   const selectedAvatarId = Number(profile?.avatarId) >= 1 && Number(profile?.avatarId) <= 12 ? Number(profile?.avatarId) : 1;
-  const avatarSrc = user ? getAvatarById(selectedAvatarId) : user?.photoURL || defaultAvatar;
+  const avatar = user ? getAvatarById(selectedAvatarId) : { src: defaultAvatar, srcSet: undefined };
   const displayName = profile?.displayName || user?.displayName || user?.email?.split("@")[0] || "—";
   const email = profile?.email || user?.email || "—";
 
@@ -615,7 +615,16 @@ function Profile() {
       <main className="account-main">
         <div className="profile-hero">
           <button type="button" className="profile-picture-trigger" onClick={openAvatarModal} aria-label={t("profile.avatarOpen")}>
-            <img className="profile-picture" src={avatarSrc} alt="" width={96} height={96} decoding="async" />
+            <img
+              className="profile-picture"
+              src={avatar.src}
+              srcSet={avatar.srcSet}
+              sizes="96px"
+              alt=""
+              width={96}
+              height={96}
+              decoding="async"
+            />
           </button>
           <div className="profile-hero-text">
             <h1 className="account-title profile-name">{displayName}</h1>
@@ -942,7 +951,16 @@ function Profile() {
                   aria-pressed={pendingAvatarId === avatar.id}
                   aria-label={`${t("profile.avatarOption")} ${avatar.id}`}
                 >
-                  <img src={avatar.src} alt="" width={36} height={36} loading="lazy" decoding="async" />
+                  <img
+                    src={avatar.src}
+                    srcSet={avatar.srcSet}
+                    sizes="36px"
+                    alt=""
+                    width={36}
+                    height={36}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
               ))}
             </div>

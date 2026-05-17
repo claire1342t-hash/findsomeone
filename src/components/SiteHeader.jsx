@@ -21,7 +21,7 @@ export function SiteHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const profileHref = user ? "/profile" : "/login";
   const profileAria = user ? t("meta.profileAriaUser") : t("meta.profileAriaGuest");
-  const avatarSrc = user ? getAvatarById(avatarId) : profileImg;
+  const avatar = user ? getAvatarById(avatarId) : { src: profileImg, srcSet: undefined };
 
   useEffect(() => {
     if (!user) return undefined;
@@ -71,7 +71,15 @@ export function SiteHeader() {
           ))}
         </div>
         <Link className="avatar-button" to={profileHref} aria-label={profileAria}>
-          <img src={avatarSrc} alt={profileAria} width={40} height={40} decoding="async" />
+          <img
+            src={avatar.src}
+            srcSet={avatar.srcSet}
+            sizes="40px"
+            alt={profileAria}
+            width={40}
+            height={40}
+            decoding="async"
+          />
         </Link>
       </div>
     </header>

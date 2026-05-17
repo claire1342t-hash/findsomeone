@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "images:webp": "node scripts/convert-images-to-webp.mjs",
+    "images:optimize": "node scripts/optimize-images.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
