@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -19,6 +18,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { deleteChatCascade } from "../utils/postLifecycle.js";
 import "./Chat.css";
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
@@ -60,13 +60,6 @@ export default function ChatPage() {
       : chat.posterAnonymousName || chat.posterName;
   }, [chat, senderRole]);
 
-  const deleteChatCompletely = async (id) => {
-    const messagesRef = collection(db, "chats", id, "messages");
-    const snap = await getDocs(messagesRef);
-    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
-    await deleteDoc(doc(db, "chats", id));
-  };
-
   useEffect(() => {
     if (loading) return undefined;
     if (!user) {
@@ -87,7 +80,7 @@ export default function ChatPage() {
       if (expireAt && expireAt.getTime() <= Date.now()) {
         setExpired(true);
         try {
-          await deleteChatCompletely(chatId);
+          await deleteChatCascade(chatId);
         } catch (err) {
           console.error(err);
         }
@@ -143,7 +136,7 @@ export default function ChatPage() {
     const ok = window.confirm(t("chat.endWarning"));
     if (!ok || !chatId) return;
     try {
-      await deleteChatCompletely(chatId);
+      await deleteChatCascade(chatId);
       navigate("/profile", { replace: true });
     } catch (err) {
       console.error(err);

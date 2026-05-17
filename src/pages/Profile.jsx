@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /** Avoid second `sendEmailVerification` right after signup (register flow already sends one). */
 const VERIFICATION_RESEND_COOLDOWN_MS = 120_000;
@@ -44,6 +44,8 @@ import {
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
+import { beginMatchCelebration } from "../utils/matchCelebration.js";
+import { appearanceTitleFromDescription, appearanceTitleFromPost } from "../utils/postAppearance.js";
 import "./Account.css";
 import "./ChatList.css";
 
@@ -86,17 +88,12 @@ function getResponseStatusKind(response) {
   return "pending";
 }
 
-function appearanceTitleFromPost(post, t) {
-  if (!post) return t("profile.repliesPostMissing");
-  const appearance = post.description?.appearance ?? "";
-  const firstLine = appearance.split(/\r?\n/)[0].trim();
-  return firstLine || t("map.postFallbackAppearance");
-}
-
-function firstLineFromAppearance(description, t) {
-  const appearance = description?.appearance ?? "";
-  const firstLine = appearance.split(/\r?\n/)[0].trim();
-  return firstLine || t("map.postFallbackAppearance");
+async function sendProfileNotificationEmail(kind, postId, responseUserId) {
+  try {
+    await sendEmail({ kind, postId, responseUserId });
+  } catch (mailErr) {
+    console.error(`[Profile] sendEmail ${kind} failed`, mailErr);
+  }
 }
 
 function Profile() {
@@ -126,6 +123,7 @@ function Profile() {
   const newEmailSuggestion = useEmailDomainSuggestion(newEmailForVerify);
   /** Re-check cooldown timer so the resend button enables without full page reload. */
   const [verificationCooldownTick, setVerificationCooldownTick] = useState(0);
+  const celebrationPreviewCancelRef = useRef(null);
 
   const expandedPostsKey = useMemo(
     () =>
@@ -175,6 +173,14 @@ function Profile() {
       setProfile(snap.exists() ? snap.data() : null);
     });
   }, [user]);
+
+  useEffect(
+    () => () => {
+      celebrationPreviewCancelRef.current?.();
+      celebrationPreviewCancelRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!user) return undefined;
@@ -399,10 +405,6 @@ function Profile() {
     } catch (err) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
       if (code === "auth/too-many-requests") {
-        console.warn(
-          "[emailVerify] sendEmailVerification rate-limited (earlier send may have succeeded, e.g. right after signup)",
-          err,
-        );
         setEmailVerifyError("");
         setEmailVerifyInfo(t("profile.emailVerify.tooManyLikelySent"));
       } else {
@@ -535,13 +537,8 @@ function Profile() {
         chatId: chatRef.id,
         reviewedAt: serverTimestamp(),
       });
-      try {
-        console.log("[Profile] calling sendEmail posterAcceptedResponse", { postId, responseUserId });
-        const mailResult = await sendEmail({ kind: "posterAcceptedResponse", postId, responseUserId });
-        console.log("[Profile] sendEmail finished", mailResult);
-      } catch (mailErr) {
-        console.error("[Profile] sendEmail posterAcceptedResponse failed", mailErr);
-      }
+      await sendProfileNotificationEmail("posterAcceptedResponse", postId, responseUserId);
+      beginMatchCelebration();
       navigate(`/chat/${chatRef.id}`);
     } catch (err) {
       console.error(err);
@@ -562,18 +559,18 @@ function Profile() {
         attemptCount: increment(1),
         reviewedAt: serverTimestamp(),
       });
-      try {
-        console.log("[Profile] calling sendEmail posterRejectedResponse", { postId, responseUserId });
-        const mailResult = await sendEmail({ kind: "posterRejectedResponse", postId, responseUserId });
-        console.log("[Profile] sendEmail finished", mailResult);
-      } catch (mailErr) {
-        console.error("[Profile] sendEmail posterRejectedResponse failed", mailErr);
-      }
+      await sendProfileNotificationEmail("posterRejectedResponse", postId, responseUserId);
     } catch (err) {
       console.error(err);
     } finally {
       setResponseActionBusy((prev) => ({ ...prev, [busyKey]: false }));
     }
+  };
+
+  const previewCelebration = () => {
+    celebrationPreviewCancelRef.current?.();
+    const { cancel } = beginMatchCelebration();
+    celebrationPreviewCancelRef.current = cancel;
   };
 
   const deletePostManually = async (postId) => {
@@ -726,9 +723,21 @@ function Profile() {
         {saveError ? <p className="account-error" role="alert">{saveError}</p> : null}
 
         <section className="account-section" aria-labelledby="profile-posts-heading">
-          <h2 id="profile-posts-heading" className="account-section-title">
-            {t("profile.postsTitle")}
-          </h2>
+          <div className="profile-posts-heading-row">
+            <h2 id="profile-posts-heading" className="account-section-title profile-posts-heading-row__title">
+              {t("profile.postsTitle")}
+            </h2>
+            {profile?.isAdmin === true ? (
+              <button
+                type="button"
+                className="profile-admin-celebration-preview-btn"
+                onClick={previewCelebration}
+                aria-label={t("profile.celebrationPreviewAria")}
+              >
+                {t("profile.celebrationPreview")}
+              </button>
+            ) : null}
+          </div>
           {postsError ? <p className="account-error" role="alert">{postsError}</p> : null}
           {posts.length === 0 && !postsError ? (
             <p className="account-muted">{t("profile.postsEmpty")}</p>
@@ -765,7 +774,7 @@ function Profile() {
                       ×
                     </button>
                   </div>
-                  <p className="profile-post-snippet">{firstLineFromAppearance(p.description, t)}</p>
+                  <p className="profile-post-snippet">{appearanceTitleFromDescription(p.description, t)}</p>
                   <div className="profile-post-responses-summary">
                     <span>{(postResponsesByPostId[p.id] || []).length} {t("profile.responsesCount")}</span>
                     <button
@@ -877,7 +886,7 @@ function Profile() {
                   <li key={row.path} className="profile-post-card">
                     <div className="profile-reply-title-row">
                       <p className="profile-post-snippet profile-reply-title-row__title">
-                        {appearanceTitleFromPost(row.post, t)}
+                        {appearanceTitleFromPost(row.post, t, "profile.repliesPostMissing")}
                       </p>
                       {repliedPostExpiryBadge ? (
                         <span

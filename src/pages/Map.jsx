@@ -27,17 +27,12 @@ import { generateAnonymousName } from "../utils/generateAnonymousName.js";
 import { deletePostCascade, getPostExpiryBadge, isPostExpired } from "../utils/postLifecycle.js";
 import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.png";
 
 const TAIPEI_CENTER = [25.033, 121.5654];
-
-function getAppearanceTitle(post, t) {
-  const appearance = post.description?.appearance ?? "";
-  const firstLine = appearance.split(/\r?\n/)[0].trim();
-  return firstLine || t("map.postFallbackAppearance");
-}
 
 function formatDate(createdAt, language) {
   if (!createdAt?.toDate) return "—";
@@ -177,39 +172,23 @@ function MapPage() {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       const activePosts = [];
-      const expiredPostIds = [];
       snap.docs.forEach((docItem) => {
         const data = docItem.data();
         if (isPostExpired(data.createdAt, data.isPinned === true)) {
-          expiredPostIds.push(docItem.id);
+          if (user?.uid && data.authorUid === user.uid) {
+            deletePostCascade(docItem.id, user.uid).catch(() => {});
+          }
           return;
         }
         activePosts.push({ id: docItem.id, ...data });
       });
       setPosts(activePosts);
-      if (user && expiredPostIds.length > 0) {
-        expiredPostIds.forEach((postId) => {
-          deletePostCascade(postId, user.uid).catch(() => {
-            // ignore permission failures for non-owner users
-          });
-        });
-      }
     });
   }, [user]);
 
   const isOwnPost = !!user && !!selectedPost && selectedPost.authorUid === user.uid;
 
-  const closePanel = () => {
-    setClusterPosts([]);
-    setSelectedPostId(null);
-    setVerifyOpen(false);
-    setAnswer1("");
-    setAnswer2("");
-    setVerifyBusy(false);
-    setVerifyError("");
-    setVerifySubmitted(false);
-    setVerifyLocked(false);
-    setPreviousRejectedOnce(false);
+  const resetReportState = () => {
     setReportOpen(false);
     setReportReason("不當內容");
     setReportOtherText("");
@@ -227,6 +206,13 @@ function MapPage() {
     setVerifySubmitted(false);
     setVerifyLocked(false);
     setPreviousRejectedOnce(false);
+  };
+
+  const closePanel = () => {
+    setClusterPosts([]);
+    setSelectedPostId(null);
+    resetVerificationState();
+    resetReportState();
   };
 
   const submitPostReport = async () => {
@@ -379,9 +365,7 @@ function MapPage() {
       );
 
       try {
-        console.log("[Map] calling sendEmail after response setDoc", { postId: selectedPost.id });
-        const mailResult = await sendEmail({ kind: "mapResponseSubmitted", postId: selectedPost.id });
-        console.log("[Map] sendEmail finished", mailResult);
+        await sendEmail({ kind: "mapResponseSubmitted", postId: selectedPost.id });
       } catch (mailErr) {
         console.error("[Map] sendEmail mapResponseSubmitted failed", mailErr);
       }
@@ -444,7 +428,7 @@ function MapPage() {
                         }}
                       >
                         <div className="map-post-card__head">
-                          <p className="map-post-card__title">{getAppearanceTitle(post, t)}</p>
+                          <p className="map-post-card__title">{appearanceTitleFromDescription(post.description, t)}</p>
                           {postExpiryBadge ? (
                             <span
                               className={`map-post-card__expiry map-post-card__expiry--${postExpiryBadge.tone}`}
@@ -472,7 +456,7 @@ function MapPage() {
             >
             <aside className="map-sheet__right" ref={rightScrollRef} onScroll={onRightScroll}>
               <h2 className="map-detail__title">
-                <span className="map-detail__title-text">{getAppearanceTitle(selectedPost, t)}</span>
+                <span className="map-detail__title-text">{appearanceTitleFromDescription(selectedPost.description, t)}</span>
                 {selectedPostExpiryBadge ? (
                   <span
                     className={`map-detail__title-expiry map-post-card__expiry--${selectedPostExpiryBadge.tone}`}

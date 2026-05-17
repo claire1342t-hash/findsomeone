@@ -17,17 +17,13 @@ const LOG = "[sendEmail:client]";
  * }} payload
  */
 export async function sendEmail(payload) {
-  console.log(`${LOG} invoked`, { kind: payload?.kind, postId: payload?.postId, hasResponseUserId: !!payload?.responseUserId });
-
   const user = auth.currentUser;
   if (!user) {
-    console.log(`${LOG} ABORT: no auth.currentUser`);
     throw new Error("Not authenticated");
   }
 
   const idToken = await user.getIdToken(true);
   const url = import.meta.env.REACT_APP_SEND_EMAIL_URL || "/api/sendEmail";
-  console.log(`${LOG} fetching`, { url, origin: typeof window !== "undefined" ? window.location.origin : "(ssr)" });
 
   let res;
   try {
@@ -45,7 +41,6 @@ export async function sendEmail(payload) {
   }
 
   const text = await res.text();
-  console.log(`${LOG} response`, { status: res.status, bodyPreview: text.slice(0, 500) });
 
   if (text.trimStart().startsWith("<")) {
     const hint =
@@ -67,6 +62,5 @@ export async function sendEmail(payload) {
     throw new Error(data.error || text || `HTTP ${res.status}`);
   }
 
-  console.log(`${LOG} OK`, data);
   return data;
 }

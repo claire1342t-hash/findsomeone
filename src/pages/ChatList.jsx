@@ -6,37 +6,8 @@ import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
+import { getChatExpiryBadge } from "../utils/postLifecycle.js";
 import "./ChatList.css";
-
-const MS_PER_DAY = 86400000;
-
-/**
- * ceilDays = ceil(msLeft / 24h), badge only if ceilDays ≤ 3.
- * Gray: ceilDays===3 (~48–72h). Orange: ceilDays===2 (~24–48h).
- * Red: ceilDays===1 — less-than-one-day if msLeft < 24h, else one-day (e.g. exactly 24h).
- * @returns {{ textKey: string, tone: "gray" | "orange" | "red" } | null}
- */
-function getExpiryBadge(expiresAt, now = new Date()) {
-  if (!expiresAt?.toDate) return null;
-  const msLeft = expiresAt.toDate().getTime() - now.getTime();
-  if (msLeft <= 0) return null;
-  const ceilDays = Math.ceil(msLeft / MS_PER_DAY);
-  if (ceilDays > 3) return null;
-
-  if (ceilDays === 3) {
-    return { textKey: "chat.expiresBadgeThree", tone: "gray" };
-  }
-  if (ceilDays === 2) {
-    return { textKey: "chat.expiresBadgeTwo", tone: "orange" };
-  }
-  if (ceilDays === 1) {
-    if (msLeft < MS_PER_DAY) {
-      return { textKey: "chat.expiresBadgeLessOne", tone: "red" };
-    }
-    return { textKey: "chat.expiresBadgeOne", tone: "red" };
-  }
-  return null;
-}
 
 export default function ChatListPage() {
   const { t, language } = useLanguage();
@@ -100,7 +71,7 @@ export default function ChatListPage() {
               const mineRole = isPoster ? "poster" : "responder";
               const unread = chat.lastMessageSenderRole && chat.lastMessageSenderRole !== mineRole;
               const time = chat.updatedAt || chat.createdAt;
-              const expiryBadge = getExpiryBadge(chat.expiresAt);
+              const expiryBadge = getChatExpiryBadge(chat.expiresAt);
               return (
                 <li key={chat.id}>
                   <Link className="chat-list-item" to={`/chat/${chat.id}`}>

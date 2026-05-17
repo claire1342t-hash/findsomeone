@@ -22,22 +22,3 @@
   font-size: 16px;
   line-height: 1.55;
 }
-
-.about-corner-image {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: min(28vw, 280px);
-  max-width: 42vw;
-  height: auto;
-  z-index: 20;
-  pointer-events: none;
-}
-
-@media (max-width: 768px) {
-  .about-corner-image {
-    right: 12px;
-    bottom: 12px;
-    width: min(38vw, 200px);
-  }
-}
