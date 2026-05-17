@@ -1,4 +1,4 @@
-import { auth } from "../firebase.js";
+import { getFirebaseAuth } from "../firebaseAuth.js";
 
 const LOG = "[sendEmail:client]";
 
@@ -17,6 +17,7 @@ const LOG = "[sendEmail:client]";
  * }} payload
  */
 export async function sendEmail(payload) {
+  const auth = await getFirebaseAuth();
   const user = auth.currentUser;
   if (!user) {
     throw new Error("Not authenticated");

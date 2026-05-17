@@ -26,7 +26,8 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { auth, db } from "../firebase.js";
+import { db } from "../firebase.js";
+import { getFirebaseAuth } from "../firebaseAuth.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { EmailDomainHint } from "../components/EmailDomainHint.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -384,6 +385,7 @@ function Profile() {
     }
     setEmailVerifyError("");
     setEmailVerifyInfo("");
+    const auth = await getFirebaseAuth();
     const current = auth.currentUser;
     if (!current?.email) {
       setEmailVerifyError(t("profile.emailVerify.errorNoSession"));
@@ -437,6 +439,7 @@ function Profile() {
 
   const handleSubmitNewEmailForVerification = async () => {
     if (!user || emailVerifyBusy) return;
+    const auth = await getFirebaseAuth();
     const currentUser = auth.currentUser;
     if (!currentUser?.email) {
       setEmailVerifyError(t("profile.emailVerify.errorNoSession"));

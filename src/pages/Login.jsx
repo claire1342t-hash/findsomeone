@@ -8,8 +8,8 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth } from "../firebase.js";
 import { db } from "../firebase.js";
+import { getFirebaseAuth } from "../firebaseAuth.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -75,6 +75,7 @@ function Login() {
     setError("");
     setBusy(true);
     try {
+      const auth = await getFirebaseAuth();
       const emailNorm = email.trim().toLowerCase();
       if (mode === "register") {
         const cred = await createUserWithEmailAndPassword(auth, emailNorm, password);

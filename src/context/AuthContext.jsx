@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, reload, signOut as firebaseSignOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase.js";
+import { db } from "../firebase.js";
+import { getFirebaseAuth } from "../firebaseAuth.js";
 
 const AuthContext = createContext(null);
 
@@ -25,22 +25,34 @@ export function AuthProvider({ children }) {
   const [authProfileEpoch, setAuthProfileEpoch] = useState(0);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (nextUser) => {
-      setUser(nextUser);
-      if (nextUser) {
-        try {
-          await syncUserDocument(nextUser);
-        } catch (e) {
-          console.error("syncUserDocument", e);
+    let unsubscribe = () => {};
+    (async () => {
+      const auth = await getFirebaseAuth();
+      const { onAuthStateChanged } = await import("firebase/auth");
+      unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+        setUser(nextUser);
+        if (nextUser) {
+          try {
+            await syncUserDocument(nextUser);
+          } catch (e) {
+            console.error("syncUserDocument", e);
+          }
         }
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      });
+    })();
+    return () => unsubscribe();
   }, []);
 
-  const signOut = () => firebaseSignOut(auth);
+  const signOut = useCallback(async () => {
+    const auth = await getFirebaseAuth();
+    const { signOut: firebaseSignOut } = await import("firebase/auth");
+    return firebaseSignOut(auth);
+  }, []);
 
   const refreshAuthProfile = useCallback(async () => {
+    const auth = await getFirebaseAuth();
+    const { reload } = await import("firebase/auth");
     if (!auth.currentUser) return;
     await reload(auth.currentUser);
     try {
