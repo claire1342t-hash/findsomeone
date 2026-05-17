@@ -12,7 +12,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -32,6 +32,7 @@ export default function ChatPage() {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const db = useDb();
   const [chat, setChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -61,7 +62,7 @@ export default function ChatPage() {
   }, [chat, senderRole]);
 
   useEffect(() => {
-    if (loading) return undefined;
+    if (loading || !db) return undefined;
     if (!user) {
       navigate("/login", { replace: true });
       return undefined;
@@ -89,22 +90,22 @@ export default function ChatPage() {
       setExpired(false);
       setChat(data);
     });
-  }, [chatId, loading, navigate, user]);
+  }, [chatId, loading, navigate, user, db]);
 
   useEffect(() => {
-    if (!chatId) return undefined;
+    if (!chatId || !db) return undefined;
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"));
     return onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
-  }, [chatId]);
+  }, [chatId, db]);
 
   useEffect(() => {
     messagesBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, chatId]);
 
   const sendMessage = async () => {
-    if (!chatId || !senderRole) return;
+    if (!db || !chatId || !senderRole) return;
     const trimmed = text.trim();
     if (!trimmed) return;
     try {
@@ -144,7 +145,7 @@ export default function ChatPage() {
   };
 
   const submitChatReport = async () => {
-    if (!chatId || !user) return;
+    if (!db || !chatId || !user) return;
     const trimmedOther = reportOtherText.trim();
     if (reportReason === "其他" && !trimmedOther) {
       setReportError("請填寫其他原因內容。");
@@ -180,7 +181,7 @@ export default function ChatPage() {
   };
 
   const openChatReportModal = async () => {
-    if (!chatId) return;
+    if (!db || !chatId) return;
     setReportOpen(true);
     setReportError("");
     setReportReason("不當內容");

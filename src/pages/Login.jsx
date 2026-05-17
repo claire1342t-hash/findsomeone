@@ -8,8 +8,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase.js";
-import { getFirebaseAuth } from "../firebaseAuth.js";
+import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -93,6 +92,7 @@ function Login() {
         }
       } else {
         const cred = await signInWithEmailAndPassword(auth, emailNorm, password);
+        const db = await getDb();
         const userSnap = await getDoc(doc(db, "users", cred.user.uid));
         if (userSnap.exists() && userSnap.data()?.isBanned === true) {
           await signOut(auth);

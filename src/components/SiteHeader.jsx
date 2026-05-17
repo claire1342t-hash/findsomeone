@@ -1,10 +1,9 @@
 import { Link } from "react-router-dom";
-import { doc, onSnapshot } from "firebase/firestore";
 import profileImg from "../assets/illustrations/profile.webp";
 import { SUPPORTED_LANGUAGES, useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { db } from "../firebase.js";
 import { getAvatarById } from "../assets/avatarOptions.js";
+import { getDb } from "../lib/firebaseApp.js";
 import { useEffect, useState } from "react";
 
 const NAV_KEYS = [
@@ -25,12 +24,16 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!user) return undefined;
-    const ref = doc(db, "users", user.uid);
-    return onSnapshot(ref, (snap) => {
-      const id = Number(snap.data()?.avatarId);
-      setAvatarId(id >= 1 && id <= 12 ? id : 1);
-      setIsAdmin(snap.data()?.isAdmin === true);
-    });
+    let unsubscribe = () => {};
+    (async () => {
+      const [{ doc, onSnapshot }, db] = await Promise.all([import("firebase/firestore"), getDb()]);
+      unsubscribe = onSnapshot(doc(db, "users", user.uid), (snap) => {
+        const id = Number(snap.data()?.avatarId);
+        setAvatarId(id >= 1 && id <= 12 ? id : 1);
+        setIsAdmin(snap.data()?.isAdmin === true);
+      });
+    })();
+    return () => unsubscribe();
   }, [user]);
 
   return (

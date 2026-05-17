@@ -4,7 +4,6 @@ import { BrowserRouter } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { AppRoutes } from "./routes.jsx";
-import "./firebase.js";
 import "./index.css";
 
 const ROOT_KEY = "__findsomeone_app_root__";

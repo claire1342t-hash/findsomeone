@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -12,12 +12,13 @@ import "./ChatList.css";
 export default function ChatListPage() {
   const { t, language } = useLanguage();
   const { user, loading } = useAuth();
+  const db = useDb();
   const navigate = useNavigate();
   const [posterChats, setPosterChats] = useState([]);
   const [responderChats, setResponderChats] = useState([]);
 
   useEffect(() => {
-    if (loading) return undefined;
+    if (loading || !db) return undefined;
     if (!user) {
       navigate("/login", { replace: true });
       return undefined;
@@ -34,7 +35,7 @@ export default function ChatListPage() {
       unsub1();
       unsub2();
     };
-  }, [loading, navigate, user]);
+  }, [loading, navigate, user, db]);
 
   const chats = useMemo(() => {
     const map = new Map();

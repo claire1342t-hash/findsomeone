@@ -19,7 +19,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -128,6 +128,7 @@ function ClusterLayer({ posts, onClusterPick }) {
 function MapPage() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const db = useDb();
   const [posts, setPosts] = useState([]);
   const [clusterPosts, setClusterPosts] = useState([]);
   const [selectedPostId, setSelectedPostId] = useState(null);
@@ -169,6 +170,7 @@ function MapPage() {
   const { ref: rightScrollRef, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
 
   useEffect(() => {
+    if (!db) return undefined;
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => {
       const activePosts = [];
@@ -184,7 +186,7 @@ function MapPage() {
       });
       setPosts(activePosts);
     });
-  }, [user]);
+  }, [user, db]);
 
   const isOwnPost = !!user && !!selectedPost && selectedPost.authorUid === user.uid;
 
@@ -216,7 +218,7 @@ function MapPage() {
   };
 
   const submitPostReport = async () => {
-    if (!selectedPost) return;
+    if (!db || !selectedPost) return;
     if (!user) {
       setReportError(t("map.verifyLoginRequired"));
       return;
@@ -257,7 +259,7 @@ function MapPage() {
   };
 
   const openReportModal = async () => {
-    if (!selectedPost) return;
+    if (!db || !selectedPost) return;
     setReportOpen(true);
     setReportError("");
     setReportReason("不當內容");
@@ -282,6 +284,7 @@ function MapPage() {
   };
 
   useEffect(() => {
+    if (!db) return undefined;
     let active = true;
     async function inspectExistingResponse() {
       if (!verifyOpen || !selectedPost || !user) return;
@@ -320,10 +323,10 @@ function MapPage() {
     return () => {
       active = false;
     };
-  }, [verifyOpen, selectedPost, user]);
+  }, [verifyOpen, selectedPost, user, db]);
 
   const submitVerification = async () => {
-    if (!selectedPost || !user || verifyBusy || verifySubmitted || verifyLocked) return;
+    if (!db || !selectedPost || !user || verifyBusy || verifySubmitted || verifyLocked) return;
     if (isOwnPost) {
       setVerifyError(t("map.verifyOwnPost"));
       return;

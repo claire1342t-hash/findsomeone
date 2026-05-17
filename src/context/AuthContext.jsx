@@ -1,12 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "../firebase.js";
-import { getFirebaseAuth } from "../firebaseAuth.js";
+import { useLocation } from "react-router-dom";
+import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
+import { deferUntilIdle } from "../lib/deferUntilIdle.js";
 
 const AuthContext = createContext(null);
 
+const IDLE_AUTH_PATHS = new Set(["/", "/about"]);
+
 async function syncUserDocument(user) {
   if (!user) return;
+  const [{ doc, setDoc }, db] = await Promise.all([import("firebase/firestore"), getDb()]);
   const ref = doc(db, "users", user.uid);
   const emailNorm = String(user.email ?? "").trim().toLowerCase();
   await setDoc(
@@ -20,29 +23,45 @@ async function syncUserDocument(user) {
 }
 
 export function AuthProvider({ children }) {
+  const { pathname } = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authProfileEpoch, setAuthProfileEpoch] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     let unsubscribe = () => {};
-    (async () => {
-      const auth = await getFirebaseAuth();
-      const { onAuthStateChanged } = await import("firebase/auth");
-      unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-        setUser(nextUser);
-        if (nextUser) {
-          try {
-            await syncUserDocument(nextUser);
-          } catch (e) {
-            console.error("syncUserDocument", e);
+
+    const startAuth = () => {
+      if (cancelled) return;
+      (async () => {
+        const auth = await getFirebaseAuth();
+        const { onAuthStateChanged } = await import("firebase/auth");
+        if (cancelled) return;
+        unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+          setUser(nextUser);
+          if (nextUser) {
+            try {
+              await syncUserDocument(nextUser);
+            } catch (e) {
+              console.error("syncUserDocument", e);
+            }
           }
-        }
-        setLoading(false);
-      });
-    })();
-    return () => unsubscribe();
-  }, []);
+          setLoading(false);
+        });
+      })();
+    };
+
+    const cancelSchedule = IDLE_AUTH_PATHS.has(pathname)
+      ? deferUntilIdle(startAuth)
+      : (startAuth(), () => {});
+
+    return () => {
+      cancelled = true;
+      cancelSchedule();
+      unsubscribe();
+    };
+  }, [pathname]);
 
   const signOut = useCallback(async () => {
     const auth = await getFirebaseAuth();

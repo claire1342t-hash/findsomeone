@@ -8,7 +8,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -45,6 +45,7 @@ function isDeletedUser(userDoc) {
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
+  const db = useDb();
   const navigate = useNavigate();
   const [nowMs] = useState(() => Date.now());
   const [ready, setReady] = useState(false);
@@ -57,7 +58,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !db) return;
     if (!user) {
       navigate("/", { replace: true });
       return;
@@ -80,10 +81,10 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, [loading, navigate, user]);
+  }, [loading, navigate, user, db]);
 
   useEffect(() => {
-    if (!ready) return undefined;
+    if (!ready || !db) return undefined;
     const unsubs = [
       onSnapshot(collection(db, "posts"), (snap) => {
         setPosts(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
@@ -101,7 +102,7 @@ export default function AdminPage() {
     return () => {
       unsubs.forEach((unsub) => unsub());
     };
-  }, [ready]);
+  }, [ready, db]);
 
   const usersById = useMemo(() => {
     const map = new Map();
@@ -204,6 +205,7 @@ export default function AdminPage() {
   };
 
   const handleTogglePinned = async (post) => {
+    if (!db) return;
     const key = `pin-post-${post.id}`;
     setBusy(key, true);
     setError("");
@@ -218,6 +220,7 @@ export default function AdminPage() {
   };
 
   const handleUpdateReportStatus = async (reportId, status) => {
+    if (!db) return;
     const key = `report-${reportId}-${status}`;
     setBusy(key, true);
     setError("");

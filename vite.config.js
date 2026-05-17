@@ -10,7 +10,7 @@ export default defineConfig({
     modulePreload: {
       resolveDependencies(_filename, deps, { hostType }) {
         if (hostType !== "html") return deps;
-        return deps.filter((dep) => !dep.includes("leaflet"));
+        return deps.filter((dep) => !dep.includes("leaflet") && !dep.includes("firebase"));
       },
     },
     rollupOptions: {

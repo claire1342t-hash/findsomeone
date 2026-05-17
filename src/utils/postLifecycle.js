@@ -1,5 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, query, where } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { getDb } from "../lib/firebaseApp.js";
 
 const POST_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
 const MS_PER_DAY = 86400000;
@@ -67,6 +66,10 @@ export function getPostExpiryBadge(createdAt, now = new Date(), isPinned = false
 }
 
 export async function deleteChatCascade(chatId) {
+  const [{ collection, deleteDoc, doc, getDocs }, db] = await Promise.all([
+    import("firebase/firestore"),
+    getDb(),
+  ]);
   const messagesSnap = await getDocs(collection(db, "chats", chatId, "messages"));
   await Promise.allSettled(messagesSnap.docs.map((d) => deleteDoc(d.ref)));
   await deleteDoc(doc(db, "chats", chatId));
@@ -76,6 +79,10 @@ export async function deleteChatCascade(chatId) {
  * Chats linked to this post still in their window (expiresAt in the future, or missing).
  */
 export async function hasActiveChatsForPost(postId) {
+  const [{ collection, getDocs, query, where }, db] = await Promise.all([
+    import("firebase/firestore"),
+    getDb(),
+  ]);
   const chatsSnap = await getDocs(query(collection(db, "chats"), where("postId", "==", postId)));
   const now = Date.now();
   for (const d of chatsSnap.docs) {
@@ -87,6 +94,10 @@ export async function hasActiveChatsForPost(postId) {
 
 /** Deletes the post, all response subdocs, and ownedPosts index entry. Does not delete chats. */
 export async function deletePostCascade(postId, ownerUid) {
+  const [{ collection, deleteDoc, doc, getDocs }, db] = await Promise.all([
+    import("firebase/firestore"),
+    getDb(),
+  ]);
   const responsesSnap = await getDocs(collection(db, "posts", postId, "responses"));
   await Promise.allSettled(responsesSnap.docs.map((d) => deleteDoc(d.ref)));
   await deleteDoc(doc(db, "posts", postId));

@@ -26,8 +26,8 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
 import { getFirebaseAuth } from "../firebaseAuth.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { EmailDomainHint } from "../components/EmailDomainHint.jsx";
 import { Footer } from "../components/Footer.jsx";
@@ -100,6 +100,7 @@ async function sendProfileNotificationEmail(kind, postId, responseUserId) {
 function Profile() {
   const { t, language } = useLanguage();
   const { user, loading, signOut, refreshAuthProfile } = useAuth();
+  const db = useDb();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -166,12 +167,12 @@ function Profile() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user || !db) return undefined;
     const ref = doc(db, "users", user.uid);
     return onSnapshot(ref, (snap) => {
       setProfile(snap.exists() ? snap.data() : null);
     });
-  }, [user]);
+  }, [user, db]);
 
   useEffect(
     () => () => {
@@ -182,7 +183,7 @@ function Profile() {
   );
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user || !db) return undefined;
     const q = query(collection(db, "users", user.uid, "ownedPosts"), orderBy("createdAt", "desc"));
     return onSnapshot(
       q,
@@ -225,10 +226,10 @@ function Profile() {
         setPostsError(err.message || String(err));
       },
     );
-  }, [user]);
+  }, [user, db]);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user || !db) return undefined;
     let cancelled = false;
     const q = query(collectionGroup(db, "responses"), where("responderUid", "==", user.uid));
     const unsub = onSnapshot(
@@ -292,10 +293,10 @@ function Profile() {
       cancelled = true;
       unsub();
     };
-  }, [user]);
+  }, [user, db]);
 
   useEffect(() => {
-    if (!posts.length) return undefined;
+    if (!db || !posts.length) return undefined;
     const unsubscribers = posts.map((post) =>
       onSnapshot(collection(db, "posts", post.id, "responses"), (snap) => {
         setPostResponsesByPostId((prev) => ({
@@ -307,9 +308,10 @@ function Profile() {
     return () => {
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [posts]);
+  }, [posts, db]);
 
   useEffect(() => {
+    if (!db) return undefined;
     let cancelled = false;
     async function inspectChats() {
       const chatIds = new Set();
@@ -343,7 +345,7 @@ function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [postResponsesByPostId]);
+  }, [postResponsesByPostId, db]);
 
   const selectedAvatarId = Number(profile?.avatarId) >= 1 && Number(profile?.avatarId) <= 12 ? Number(profile?.avatarId) : 1;
   const avatar = user ? getAvatarById(selectedAvatarId) : { src: defaultAvatar, srcSet: undefined };
@@ -351,7 +353,7 @@ function Profile() {
   const email = profile?.email || user?.email || "—";
 
   const saveAvatar = async () => {
-    if (!user || avatarSaving) return;
+    if (!db || !user || avatarSaving) return;
     setSaveError("");
     setAvatarSaving(true);
     try {
@@ -479,7 +481,7 @@ function Profile() {
   };
 
   const approveResponse = async (postId, responseUserId) => {
-    if (!user) return;
+    if (!db || !user) return;
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
@@ -549,7 +551,7 @@ function Profile() {
   };
 
   const rejectResponse = async (postId, responseUserId) => {
-    if (!user) return;
+    if (!db || !user) return;
     const confirmed = window.confirm(t("profile.confirmReject"));
     if (!confirmed) return;
     const busyKey = `${postId}:${responseUserId}`;

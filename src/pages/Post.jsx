@@ -4,7 +4,7 @@ import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { collection, doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -48,6 +48,7 @@ function MapViewportController({ target }) {
 function Post() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const db = useDb();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -125,7 +126,7 @@ function Post() {
     event.preventDefault();
     setSubmitError("");
     setSubmitSuccess(false);
-    if (!user) {
+    if (!user || !db) {
       setSubmitError(t("post.needLogin"));
       return;
     }
