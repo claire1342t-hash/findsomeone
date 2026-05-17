@@ -45,7 +45,12 @@ import {
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
-import { beginMatchCelebration } from "../utils/matchCelebration.js";
+import {
+  beginMatchCelebration,
+  getPendingResponderCelebrations,
+  markResponderCelebrationSeen,
+  runMatchCelebration,
+} from "../utils/matchCelebration.js";
 import { appearanceTitleFromDescription, appearanceTitleFromPost } from "../utils/postAppearance.js";
 import "./Account.css";
 import "./ChatList.css";
@@ -126,6 +131,7 @@ function Profile() {
   /** Re-check cooldown timer so the resend button enables without full page reload. */
   const [verificationCooldownTick, setVerificationCooldownTick] = useState(0);
   const celebrationPreviewCancelRef = useRef(null);
+  const responderCelebrationStartedRef = useRef(false);
 
   const expandedPostsKey = useMemo(
     () =>
@@ -167,6 +173,10 @@ function Profile() {
   }, [loading, user, navigate]);
 
   useEffect(() => {
+    responderCelebrationStartedRef.current = false;
+  }, [user?.uid]);
+
+  useEffect(() => {
     if (!user || !db) return undefined;
     const ref = doc(db, "users", user.uid);
     return onSnapshot(ref, (snap) => {
@@ -181,6 +191,17 @@ function Profile() {
     },
     [],
   );
+
+  /** Responder: first Profile visit after acceptance — celebrate once per response. */
+  useEffect(() => {
+    if (loading || !user) return;
+    const pending = getPendingResponderCelebrations(repliedPosts);
+    if (pending.length === 0) return;
+    if (responderCelebrationStartedRef.current) return;
+    responderCelebrationStartedRef.current = true;
+    pending.forEach((row) => markResponderCelebrationSeen(row.path));
+    void runMatchCelebration();
+  }, [loading, user, repliedPosts]);
 
   useEffect(() => {
     if (!user || !db) return undefined;
@@ -541,7 +562,7 @@ function Profile() {
         reviewedAt: serverTimestamp(),
       });
       await sendProfileNotificationEmail("posterAcceptedResponse", postId, responseUserId);
-      beginMatchCelebration();
+      await runMatchCelebration();
       navigate(`/chat/${chatRef.id}`);
     } catch (err) {
       console.error(err);
