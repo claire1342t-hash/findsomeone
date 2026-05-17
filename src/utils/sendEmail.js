@@ -63,5 +63,11 @@ export async function sendEmail(payload) {
     throw new Error(data.error || text || `HTTP ${res.status}`);
   }
 
+  if (data && data.ok === false) {
+    const reason = data.reason || "email_not_sent";
+    console.error(`${LOG} API declined send`, { reason, ...data });
+    throw new Error(reason);
+  }
+
   return data;
 }
