@@ -1,0 +1,7 @@
+/* Self-hosted Noto TC (繁體中文子集) — replaces fonts.googleapis.com. */
+@import "@fontsource/noto-sans-tc/chinese-traditional-400.css";
+@import "@fontsource/noto-sans-tc/chinese-traditional-500.css";
+@import "@fontsource/noto-sans-tc/chinese-traditional-700.css";
+@import "@fontsource/noto-serif-tc/chinese-traditional-500.css";
+@import "@fontsource/noto-serif-tc/chinese-traditional-700.css";
+@import "@fontsource/noto-serif-tc/chinese-traditional-800.css";

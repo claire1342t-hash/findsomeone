@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-sans-tc": "^5.2.9",
+    "@fontsource/noto-serif-tc": "^5.2.10",
     "canvas-confetti": "^1.9.4",
     "firebase": "^12.12.1",
     "jose": "^5.9.6",

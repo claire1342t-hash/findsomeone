@@ -5,6 +5,11 @@ import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { AppRoutes } from "./routes.jsx";
 import "./index.css";
+import { deferUntilIdle } from "./lib/deferUntilIdle.js";
+
+deferUntilIdle(() => {
+  import("./fonts.css");
+});
 
 const ROOT_KEY = "__findsomeone_app_root__";
 
