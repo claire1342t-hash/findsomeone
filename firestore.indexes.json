@@ -1,15 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "responses",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [{ "fieldPath": "responderUid", "order": "ASCENDING" }]
-    },
-    {
-      "collectionGroup": "repliedPosts",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [{ "fieldPath": "respondedAt", "order": "DESCENDING" }]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
