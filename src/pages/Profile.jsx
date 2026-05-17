@@ -14,7 +14,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { sendEmailVerification, verifyBeforeUpdateEmail } from "firebase/auth";
 import {
   collection,
-  collectionGroup,
   doc,
   getDoc,
   increment,
@@ -24,7 +23,6 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { getFirebaseAuth } from "../firebaseAuth.js";
 import { useDb } from "../hooks/useDb.js";
@@ -46,6 +44,7 @@ import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { beginMatchCelebration } from "../utils/matchCelebration.js";
+import { backfillRepliedPostsIndex, upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription, appearanceTitleFromPost } from "../utils/postAppearance.js";
 import "./Account.css";
 import "./ChatList.css";
@@ -110,7 +109,10 @@ function Profile() {
   const [responseActionBusy, setResponseActionBusy] = useState({});
   const [deletedChatsById, setDeletedChatsById] = useState({});
   const [repliedPosts, setRepliedPosts] = useState([]);
+  const [repliedPostsLoading, setRepliedPostsLoading] = useState(true);
   const [repliedPostsError, setRepliedPostsError] = useState("");
+  const repliedPostsLoadGenRef = useRef(0);
+  const repliedPostsBackfillAttemptedRef = useRef(false);
   const [saveError, setSaveError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -229,71 +231,115 @@ function Profile() {
   }, [user, db]);
 
   useEffect(() => {
-    if (!user || !db) return undefined;
+    if (!user || !db) {
+      setRepliedPosts([]);
+      setRepliedPostsError("");
+      setRepliedPostsLoading(false);
+      return undefined;
+    }
+
     let cancelled = false;
-    const q = query(collectionGroup(db, "responses"), where("responderUid", "==", user.uid));
+    setRepliedPostsLoading(true);
+    setRepliedPostsError("");
+
+    const q = query(collection(db, "users", user.uid, "repliedPosts"), orderBy("respondedAt", "desc"));
     const unsub = onSnapshot(
       q,
       (snap) => {
+        const loadGen = (repliedPostsLoadGenRef.current += 1);
         void (async () => {
-          try {
-            const enriched = await Promise.all(
-              snap.docs.map(async (d) => {
-                const postRef = d.ref.parent.parent;
-                const postSnap = await getDoc(postRef);
-                const responseData = d.data();
-                let partnerAnonymousName = "";
-                let chatDeleted = false;
-                const chatId = typeof responseData.chatId === "string" ? responseData.chatId : "";
-                if (chatId) {
-                  const chatSnap = await getDoc(doc(db, "chats", chatId));
-                  if (chatSnap.exists()) {
-                    const chatData = chatSnap.data();
-                    partnerAnonymousName =
-                      user.uid === chatData.posterUid
-                        ? chatData.responderAnonymousName || chatData.responderName || ""
-                        : chatData.posterAnonymousName || chatData.posterName || "";
-                  } else {
-                    chatDeleted = true;
-                  }
+          if (snap.empty) {
+            if (!repliedPostsBackfillAttemptedRef.current) {
+              repliedPostsBackfillAttemptedRef.current = true;
+              try {
+                const migrated = await backfillRepliedPostsIndex(db, user.uid);
+                if (migrated === 0 && !cancelled && loadGen === repliedPostsLoadGenRef.current) {
+                  setRepliedPosts([]);
+                  setRepliedPostsError("");
+                  setRepliedPostsLoading(false);
                 }
-                return {
-                  path: d.ref.path,
-                  response: responseData,
-                  post: postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } : null,
-                  partnerAnonymousName,
-                  chatDeleted,
-                };
-              }),
-            );
-            if (cancelled) return;
-            enriched.sort((a, b) => {
-              const ta = a.response?.createdAt?.toDate?.()?.getTime?.() ?? 0;
-              const tb = b.response?.createdAt?.toDate?.()?.getTime?.() ?? 0;
-              return tb - ta;
-            });
-            setRepliedPosts(enriched);
-            setRepliedPostsError("");
-          } catch {
-            if (!cancelled) {
+              } catch (err) {
+                console.error("[Profile] repliedPosts backfill failed", err);
+                if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
+                  setRepliedPostsError(t("profile.repliesLoadError"));
+                  setRepliedPostsLoading(false);
+                }
+              }
+              return;
+            }
+            if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
               setRepliedPosts([]);
               setRepliedPostsError("");
+              setRepliedPostsLoading(false);
             }
+            return;
           }
+
+          const rows = snap.docs.map((indexDoc) => ({
+            postId: indexDoc.id,
+            index: indexDoc.data(),
+          }));
+
+          const enriched = await Promise.all(
+            rows.map(async ({ postId, index }) => {
+              const path = `posts/${postId}/responses/${user.uid}`;
+              try {
+                const postSnap = await getDoc(doc(db, "posts", postId));
+                const chatId = typeof index.chatId === "string" ? index.chatId : "";
+                let chatDeleted = false;
+                if (chatId) {
+                  const chatSnap = await getDoc(doc(db, "chats", chatId));
+                  chatDeleted = !chatSnap.exists();
+                }
+                return {
+                  path,
+                  response: {
+                    status: index.status,
+                    attemptCount: index.attemptCount,
+                    createdAt: index.respondedAt,
+                    chatId,
+                  },
+                  post: postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } : null,
+                  chatDeleted,
+                };
+              } catch (err) {
+                console.error("[Profile] enrich replied post failed", postId, err);
+                return {
+                  path,
+                  response: {
+                    status: index.status,
+                    attemptCount: index.attemptCount,
+                    createdAt: index.respondedAt,
+                    chatId: index.chatId,
+                  },
+                  post: null,
+                  chatDeleted: false,
+                };
+              }
+            }),
+          );
+
+          if (cancelled || loadGen !== repliedPostsLoadGenRef.current) return;
+          setRepliedPosts(enriched);
+          setRepliedPostsError("");
+          setRepliedPostsLoading(false);
         })();
       },
-      () => {
+      (err) => {
+        console.error("[Profile] repliedPosts listener error", err);
         if (!cancelled) {
-          setRepliedPosts([]);
-          setRepliedPostsError("");
+          setRepliedPostsError(t("profile.repliesLoadError"));
+          setRepliedPostsLoading(false);
         }
       },
     );
+
     return () => {
       cancelled = true;
       unsub();
+      repliedPostsBackfillAttemptedRef.current = false;
     };
-  }, [user, db]);
+  }, [user, db, t]);
 
   useEffect(() => {
     if (!db || !posts.length) return undefined;
@@ -540,6 +586,11 @@ function Profile() {
         chatId: chatRef.id,
         reviewedAt: serverTimestamp(),
       });
+      await upsertRepliedPostIndex(db, responseUserId, postId, {
+        status: "accepted",
+        chatId: chatRef.id,
+        attemptCount: responseData.attemptCount ?? 1,
+      });
       await sendProfileNotificationEmail("posterAcceptedResponse", postId, responseUserId);
       beginMatchCelebration();
       navigate(`/chat/${chatRef.id}`);
@@ -557,10 +608,17 @@ function Profile() {
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
-      await updateDoc(doc(db, "posts", postId, "responses", responseUserId), {
+      const rejectRef = doc(db, "posts", postId, "responses", responseUserId);
+      const rejectSnap = await getDoc(rejectRef);
+      const priorAttempt = Number(rejectSnap.data()?.attemptCount ?? 1);
+      await updateDoc(rejectRef, {
         status: "rejected",
         attemptCount: increment(1),
         reviewedAt: serverTimestamp(),
+      });
+      await upsertRepliedPostIndex(db, responseUserId, postId, {
+        status: "rejected",
+        attemptCount: priorAttempt + 1,
       });
       await sendProfileNotificationEmail("posterRejectedResponse", postId, responseUserId);
     } catch (err) {
@@ -873,7 +931,9 @@ function Profile() {
             {t("profile.repliesTitle")}
           </h2>
           {repliedPostsError ? <p className="account-error" role="alert">{repliedPostsError}</p> : null}
-          {repliedPosts.length === 0 && !repliedPostsError ? (
+          {repliedPostsLoading ? (
+            <p className="account-muted">{t("profile.repliesLoading")}</p>
+          ) : repliedPosts.length === 0 && !repliedPostsError ? (
             <p className="account-muted">{t("profile.repliesEmpty")}</p>
           ) : (
             <div

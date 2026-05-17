@@ -27,6 +27,7 @@ import { generateAnonymousName } from "../utils/generateAnonymousName.js";
 import { deletePostCascade, getPostExpiryBadge, isPostExpired } from "../utils/postLifecycle.js";
 import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
 import "./Map.css";
 
@@ -366,6 +367,11 @@ function MapPage() {
         },
         { merge: true },
       );
+      await upsertRepliedPostIndex(db, user.uid, selectedPost.id, {
+        respondedAt: serverTimestamp(),
+        status: "pending",
+        attemptCount: nextAttemptCount,
+      });
 
       try {
         await sendEmail({ kind: "mapResponseSubmitted", postId: selectedPost.id });

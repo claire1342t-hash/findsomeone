@@ -20,6 +20,10 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+
+      match /repliedPosts/{postId} {
+        allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     match /users/{userId}/ownedPosts/{postId} {
