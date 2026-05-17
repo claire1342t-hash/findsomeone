@@ -30,7 +30,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
 import "./Map.css";
 
-import pingIconSrc from "../assets/illustrations/ping.png";
+import pingIconSrc from "../assets/illustrations/ping.webp";
 
 const TAIPEI_CENTER = [25.033, 121.5654];
 

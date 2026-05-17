@@ -2,16 +2,16 @@ import { Link } from "react-router-dom";
 import { SiteHeader } from "./components/SiteHeader.jsx";
 import { Footer } from "./components/Footer.jsx";
 import { useLanguage } from "./context/LanguageContext.jsx";
-import mapDefault from "./assets/illustrations/map-1.png";
-import mapHover from "./assets/illustrations/map-2.png";
-import boyDefault from "./assets/illustrations/boy-1.png";
-import boyHover from "./assets/illustrations/boy-2.png";
-import phoneDefault from "./assets/illustrations/phone-1.png";
-import phoneHover from "./assets/illustrations/phone-2.png";
-import chatDefault from "./assets/illustrations/Chat-1.png";
-import chatHover from "./assets/illustrations/Chat-2.png";
-import buttonDefault from "./assets/illustrations/button_1.png";
-import buttonActive from "./assets/illustrations/button_2.png";
+import mapDefault from "./assets/illustrations/map-1.webp";
+import mapHover from "./assets/illustrations/map-2.webp";
+import boyDefault from "./assets/illustrations/boy-1.webp";
+import boyHover from "./assets/illustrations/boy-2.webp";
+import phoneDefault from "./assets/illustrations/phone-1.webp";
+import phoneHover from "./assets/illustrations/phone-2.webp";
+import chatDefault from "./assets/illustrations/Chat-1.webp";
+import chatHover from "./assets/illustrations/Chat-2.webp";
+import buttonDefault from "./assets/illustrations/button_1.webp";
+import buttonActive from "./assets/illustrations/button_2.webp";
 
 function App() {
   const { t } = useLanguage();
@@ -40,12 +40,16 @@ function App() {
                   src={card.defaultImage}
                   alt=""
                   aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <img
                   className="feature-image hover"
                   src={card.hoverImage}
                   alt=""
                   aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <h2>{t(card.titleKey)}</h2>
@@ -55,11 +59,20 @@ function App() {
         </section>
         <section className="home-post-cta" aria-label={t("hero.postCta")}>
           <Link className="hero-image-button" to="/post" aria-label={t("hero.postCta")}>
-            <img className="hero-button-image default" src={buttonDefault} alt={t("hero.postCta")} />
+            <img
+              className="hero-button-image default"
+              src={buttonDefault}
+              alt={t("hero.postCta")}
+              loading="lazy"
+              decoding="async"
+            />
             <img
               className="hero-button-image active"
               src={buttonActive}
-              alt={`${t("hero.postCta")} (active)`}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
             />
           </Link>
         </section>

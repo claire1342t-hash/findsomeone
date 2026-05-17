@@ -32,7 +32,7 @@ import { EmailDomainHint } from "../components/EmailDomainHint.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import defaultAvatar from "../assets/illustrations/profile.png";
+import defaultAvatar from "../assets/illustrations/profile.webp";
 import { AVATAR_OPTIONS, getAvatarById } from "../assets/avatarOptions.js";
 import { generateAnonymousName } from "../utils/generateAnonymousName.js";
 import {
@@ -612,7 +612,7 @@ function Profile() {
       <main className="account-main">
         <div className="profile-hero">
           <button type="button" className="profile-picture-trigger" onClick={openAvatarModal} aria-label={t("profile.avatarOpen")}>
-            <img className="profile-picture" src={avatarSrc} alt="" width={96} height={96} />
+            <img className="profile-picture" src={avatarSrc} alt="" width={96} height={96} decoding="async" />
           </button>
           <div className="profile-hero-text">
             <h1 className="account-title profile-name">{displayName}</h1>
@@ -939,7 +939,7 @@ function Profile() {
                   aria-pressed={pendingAvatarId === avatar.id}
                   aria-label={`${t("profile.avatarOption")} ${avatar.id}`}
                 >
-                  <img src={avatar.src} alt="" width={36} height={36} />
+                  <img src={avatar.src} alt="" width={36} height={36} loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>

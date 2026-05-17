@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
-import profileImg from "../assets/illustrations/profile.png";
+import profileImg from "../assets/illustrations/profile.webp";
 import { SUPPORTED_LANGUAGES, useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { db } from "../firebase.js";
@@ -71,7 +71,7 @@ export function SiteHeader() {
           ))}
         </div>
         <Link className="avatar-button" to={profileHref} aria-label={profileAria}>
-          <img src={avatarSrc} alt={profileAria} />
+          <img src={avatarSrc} alt={profileAria} width={40} height={40} decoding="async" />
         </Link>
       </div>
     </header>
