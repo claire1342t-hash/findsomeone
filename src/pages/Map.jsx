@@ -165,8 +165,8 @@ function MapPage() {
     () => `${selectedPostId ?? ""}-${verifyOpen}-${verifySubmitted}-${verifyLocked}`,
     [selectedPostId, verifyOpen, verifySubmitted, verifyLocked],
   );
-  const { ref: leftScrollRef, onScroll: onLeftScroll, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
-  const { ref: rightScrollRef, onScroll: onRightScroll, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
+  const { ref: leftScrollRef, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
+  const { ref: rightScrollRef, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -409,7 +409,7 @@ function MapPage() {
           <div
             className={`map-sheet__left-wrap ${leftShowFade ? "map-sheet__left-wrap--bottom-fade" : ""}`}
           >
-            <div className="map-sheet__left" ref={leftScrollRef} onScroll={onLeftScroll}>
+            <div className="map-sheet__left" ref={leftScrollRef}>
               <p className="map-sheet__hint">{sortedClusterPosts.length > 0 ? t("map.sheetHint") : t("map.sheetDefault")}</p>
               {sortedClusterPosts.length === 0 ? (
                 <p className="map-sheet__empty">{posts.length === 0 ? t("map.noPosts") : t("map.emptyCluster")}</p>
@@ -454,7 +454,7 @@ function MapPage() {
             <div
               className={`map-sheet__right-wrap ${rightShowFade ? "map-sheet__right-wrap--bottom-fade" : ""}`}
             >
-            <aside className="map-sheet__right" ref={rightScrollRef} onScroll={onRightScroll}>
+            <aside className="map-sheet__right" ref={rightScrollRef}>
               <h2 className="map-detail__title">
                 <span className="map-detail__title-text">{appearanceTitleFromDescription(selectedPost.description, t)}</span>
                 {selectedPostExpiryBadge ? (

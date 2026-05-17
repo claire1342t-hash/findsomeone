@@ -138,7 +138,6 @@ function Profile() {
   const repliesScrollKey = useMemo(() => `${repliedPosts.length}`, [repliedPosts.length]);
   const {
     ref: postsScrollInnerRef,
-    onScroll: onPostsScroll,
     showFade: postsScrollShowFade,
   } = useBottomScrollFade(postsScrollKey);
 
@@ -157,7 +156,6 @@ function Profile() {
   }, [user]);
   const {
     ref: repliesScrollInnerRef,
-    onScroll: onRepliesScroll,
     showFade: repliesScrollShowFade,
   } = useBottomScrollFade(repliesScrollKey);
 
@@ -759,7 +757,6 @@ function Profile() {
             >
               <div
                 ref={postsScrollInnerRef}
-                onScroll={onPostsScroll}
                 className="profile-scroll-block__inner"
               >
             <ul className="profile-post-list">
@@ -882,7 +879,6 @@ function Profile() {
             >
               <div
                 ref={repliesScrollInnerRef}
-                onScroll={onRepliesScroll}
                 className="profile-scroll-block__inner"
               >
             <ul className="profile-post-list">

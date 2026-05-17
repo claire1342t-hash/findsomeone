@@ -1,5 +1,9 @@
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { ResponsiveImg } from "./ResponsiveImg.jsx";
+
+const CAN_HOVER =
+  typeof window !== "undefined" &&
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 /**
  * Default illustration + hover (desktop only; hover asset loads on first pointer hover).
@@ -7,14 +11,9 @@ import { ResponsiveImg } from "./ResponsiveImg.jsx";
  */
 export function FeatureCardImages({ defaultImage, hoverImage }) {
   const [hoverReady, setHoverReady] = useState(false);
-  const [canHover, setCanHover] = useState(false);
-
-  useLayoutEffect(() => {
-    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
-  }, []);
 
   const activateHover = () => {
-    if (canHover) setHoverReady(true);
+    if (CAN_HOVER) setHoverReady(true);
   };
 
   return (
@@ -27,7 +26,7 @@ export function FeatureCardImages({ defaultImage, hoverImage }) {
         aria-hidden
         loading="lazy"
       />
-      {canHover ? (
+      {CAN_HOVER ? (
         <ResponsiveImg
           source={hoverReady ? hoverImage : defaultImage}
           layout="feature"

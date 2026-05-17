@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const EPS = 2;
 
@@ -12,28 +12,50 @@ function computeShowFade(el) {
 
 /**
  * Bottom fade when the element scrolls and is not at the bottom.
+ * Layout reads are batched in rAF; state updates only when visibility changes.
  * @param {string|number} layoutKey Recheck when content/layout meaningfully changes.
  */
 export function useBottomScrollFade(layoutKey) {
   const ref = useRef(null);
   const [showFade, setShowFade] = useState(false);
+  const showFadeRef = useRef(false);
+  const rafIdRef = useRef(0);
 
-  const measure = useCallback(() => {
-    setShowFade(computeShowFade(ref.current));
+  const commitMeasure = useCallback(() => {
+    const next = computeShowFade(ref.current);
+    if (next === showFadeRef.current) return;
+    showFadeRef.current = next;
+    setShowFade(next);
   }, []);
 
-  const onScroll = useCallback(() => {
-    setShowFade(computeShowFade(ref.current));
-  }, []);
+  const scheduleMeasure = useCallback(() => {
+    if (rafIdRef.current) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = 0;
+      commitMeasure();
+    });
+  }, [commitMeasure]);
 
-  useLayoutEffect(() => {
-    measure();
+  useEffect(() => {
+    scheduleMeasure();
     const el = ref.current;
     if (!el) return undefined;
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [measure, layoutKey]);
 
-  return { ref, onScroll, showFade };
+    const onScroll = () => scheduleMeasure();
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    const ro = new ResizeObserver(() => scheduleMeasure());
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = 0;
+      }
+    };
+  }, [scheduleMeasure, layoutKey]);
+
+  return { ref, showFade };
 }
