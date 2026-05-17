@@ -2,7 +2,6 @@ import {
   collection,
   collectionGroup,
   doc,
-  documentId,
   getDoc,
   getDocs,
   query,
@@ -24,26 +23,63 @@ export async function upsertRepliedPostIndex(db, uid, postId, fields) {
   await setDoc(repliedPostIndexRef(db, uid, postId), fields, { merge: true });
 }
 
+async function isChatDeleted(db, chatId) {
+  if (!chatId) return false;
+  try {
+    const chatSnap = await getDoc(doc(db, "chats", chatId));
+    return !chatSnap.exists();
+  } catch {
+    return true;
+  }
+}
+
 /**
- * All response docs for this user (responderUid field OR legacy doc id == uid).
+ * All response docs for this user (by responderUid). Also merges direct reads from
+ * users/{uid}/repliedPosts index (covers legacy rows missing responderUid on the response).
  * @param {import("firebase/firestore").Firestore} db
  */
 export async function fetchResponderResponseDocs(db, uid) {
-  const [byField, byDocId] = await Promise.all([
-    getDocs(query(collectionGroup(db, "responses"), where("responderUid", "==", uid))),
-    getDocs(query(collectionGroup(db, "responses"), where(documentId(), "==", uid))),
-  ]);
   const byPath = new Map();
-  for (const responseDoc of [...byField.docs, ...byDocId.docs]) {
-    byPath.set(responseDoc.ref.path, responseDoc);
+
+  try {
+    const byField = await getDocs(
+      query(collectionGroup(db, "responses"), where("responderUid", "==", uid)),
+    );
+    for (const responseDoc of byField.docs) {
+      byPath.set(responseDoc.ref.path, responseDoc);
+    }
+  } catch (err) {
+    console.error("[repliedPosts] collectionGroup query failed", err);
   }
+
+  try {
+    const indexSnap = await getDocs(collection(db, "users", uid, "repliedPosts"));
+    await Promise.all(
+      indexSnap.docs.map(async (indexDoc) => {
+        const postId = indexDoc.id;
+        const path = `posts/${postId}/responses/${uid}`;
+        if (byPath.has(path)) return;
+        try {
+          const responseSnap = await getDoc(doc(db, "posts", postId, "responses", uid));
+          if (responseSnap.exists()) {
+            byPath.set(path, responseSnap);
+          }
+        } catch (err) {
+          console.error("[repliedPosts] direct response read failed", postId, err);
+        }
+      }),
+    );
+  } catch (err) {
+    console.error("[repliedPosts] repliedPosts index read failed", err);
+  }
+
   return [...byPath.values()];
 }
 
 /**
  * @param {import("firebase/firestore").Firestore} db
  * @param {string} userUid
- * @param {import("firebase/firestore").QueryDocumentSnapshot[]} responseDocs
+ * @param {import("firebase/firestore").DocumentSnapshot[]} responseDocs
  */
 export async function enrichResponseDocs(db, userUid, responseDocs) {
   const enriched = await Promise.all(
@@ -65,11 +101,7 @@ export async function enrichResponseDocs(db, userUid, responseDocs) {
       try {
         const postSnap = await getDoc(doc(db, "posts", postId));
         const chatId = typeof responseData.chatId === "string" ? responseData.chatId : "";
-        let chatDeleted = false;
-        if (chatId) {
-          const chatSnap = await getDoc(doc(db, "chats", chatId));
-          chatDeleted = !chatSnap.exists();
-        }
+        const chatDeleted = await isChatDeleted(db, chatId);
         return {
           path,
           response: responseData,
@@ -108,21 +140,25 @@ export async function enrichRepliedPostIndexDocs(db, userUid, indexDocs) {
       const index = indexDoc.data();
       const path = `posts/${postId}/responses/${userUid}`;
       try {
-        const postSnap = await getDoc(doc(db, "posts", postId));
-        const chatId = typeof index.chatId === "string" ? index.chatId : "";
-        let chatDeleted = false;
-        if (chatId) {
-          const chatSnap = await getDoc(doc(db, "chats", chatId));
-          chatDeleted = !chatSnap.exists();
-        }
+        const postRef = doc(db, "posts", postId);
+        const responseRef = doc(db, "posts", postId, "responses", userUid);
+        const [postSnap, responseSnap] = await Promise.all([getDoc(postRef), getDoc(responseRef)]);
+
+        const responseData = responseSnap.exists()
+          ? responseSnap.data()
+          : {
+              status: index.status,
+              attemptCount: index.attemptCount,
+              createdAt: index.respondedAt,
+              chatId: index.chatId,
+            };
+
+        const chatId = typeof responseData.chatId === "string" ? responseData.chatId : "";
+        const chatDeleted = await isChatDeleted(db, chatId);
+
         return {
           path,
-          response: {
-            status: index.status,
-            attemptCount: index.attemptCount,
-            createdAt: index.respondedAt,
-            chatId,
-          },
+          response: responseData,
           post: postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } : null,
           chatDeleted,
         };
@@ -151,14 +187,14 @@ export async function enrichRepliedPostIndexDocs(db, userUid, indexDocs) {
   return rows;
 }
 
-/** Load from posts/.../responses via collectionGroup (source of truth). */
+/** Load from posts/.../responses (collectionGroup + direct reads). */
 export async function loadRepliedPostsFromResponses(db, userUid) {
   const responseDocs = await fetchResponderResponseDocs(db, userUid);
   return enrichResponseDocs(db, userUid, responseDocs);
 }
 
 /**
- * One-time migration: copy collectionGroup responses into repliedPosts index.
+ * One-time migration: copy responses into users/{uid}/repliedPosts index.
  * @param {import("firebase/firestore").Firestore} db
  */
 export async function backfillRepliedPostsIndex(db, uid) {
@@ -170,6 +206,14 @@ export async function backfillRepliedPostsIndex(db, uid) {
       const postId = responseDoc.ref.parent?.parent?.id;
       if (!postId) return;
       const data = responseDoc.data();
+      const patch = { responderUid: uid };
+      if (!data.responderUid) {
+        try {
+          await setDoc(responseDoc.ref, patch, { merge: true });
+        } catch (err) {
+          console.error("[repliedPosts] patch responderUid failed", postId, err);
+        }
+      }
       await upsertRepliedPostIndex(db, uid, postId, {
         respondedAt: data.createdAt || serverTimestamp(),
         status: data.status || "pending",
