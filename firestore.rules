@@ -79,12 +79,25 @@ service cloud.firestore {
         allow delete: if isSignedIn()
           && ownsPostById(postId);
 
-        allow read: if isSignedIn() && (
+        allow get: if isSignedIn() && (
           request.auth.uid == resource.data.responderUid ||
           request.auth.uid == responseUserId ||
           ownsPostById(postId)
         );
+
+        // Post owner listing responses on their post (subcollection listener).
+        allow list: if isSignedIn() && ownsPostById(postId);
       }
+    }
+
+    // Collection-group queries on `responses` (e.g. Profile "posts I responded to").
+    // Kept separate from ownsPostById so list rules match responderUid equality queries.
+    match /{path=**}/responses/{responseUserId} {
+      allow get: if isSignedIn() && (
+        request.auth.uid == resource.data.responderUid ||
+        request.auth.uid == responseUserId
+      );
+      allow list: if isSignedIn() && request.auth.uid == resource.data.responderUid;
     }
 
     match /chats/{chatId} {

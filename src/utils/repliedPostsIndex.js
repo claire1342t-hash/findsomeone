@@ -34,46 +34,47 @@ async function isChatDeleted(db, chatId) {
 }
 
 /**
- * All response docs for this user (by responderUid). Also merges direct reads from
- * users/{uid}/repliedPosts index (covers legacy rows missing responderUid on the response).
+ * Load responses via users/{uid}/repliedPosts index + direct get on posts/.../responses/{uid}.
+ * Does not use collectionGroup (avoids rules/list issues on the client hot path).
  * @param {import("firebase/firestore").Firestore} db
  */
 export async function fetchResponderResponseDocs(db, uid) {
   const byPath = new Map();
+  const indexSnap = await getDocs(collection(db, "users", uid, "repliedPosts"));
 
-  try {
-    const byField = await getDocs(
-      query(collectionGroup(db, "responses"), where("responderUid", "==", uid)),
-    );
-    for (const responseDoc of byField.docs) {
-      byPath.set(responseDoc.ref.path, responseDoc);
-    }
-  } catch (err) {
-    console.error("[repliedPosts] collectionGroup query failed", err);
-  }
-
-  try {
-    const indexSnap = await getDocs(collection(db, "users", uid, "repliedPosts"));
-    await Promise.all(
-      indexSnap.docs.map(async (indexDoc) => {
-        const postId = indexDoc.id;
-        const path = `posts/${postId}/responses/${uid}`;
-        if (byPath.has(path)) return;
-        try {
-          const responseSnap = await getDoc(doc(db, "posts", postId, "responses", uid));
-          if (responseSnap.exists()) {
-            byPath.set(path, responseSnap);
-          }
-        } catch (err) {
-          console.error("[repliedPosts] direct response read failed", postId, err);
+  await Promise.all(
+    indexSnap.docs.map(async (indexDoc) => {
+      const postId = indexDoc.id;
+      const path = `posts/${postId}/responses/${uid}`;
+      if (byPath.has(path)) return;
+      try {
+        const responseSnap = await getDoc(doc(db, "posts", postId, "responses", uid));
+        if (responseSnap.exists()) {
+          byPath.set(path, responseSnap);
         }
-      }),
-    );
-  } catch (err) {
-    console.error("[repliedPosts] repliedPosts index read failed", err);
-  }
+      } catch (err) {
+        console.error("[repliedPosts] direct response read failed", postId, err);
+      }
+    }),
+  );
 
   return [...byPath.values()];
+}
+
+/**
+ * Optional discovery for backfill only (requires collection-group list rules).
+ * @param {import("firebase/firestore").Firestore} db
+ */
+async function discoverResponsesViaCollectionGroup(db, uid) {
+  try {
+    const snap = await getDocs(
+      query(collectionGroup(db, "responses"), where("responderUid", "==", uid)),
+    );
+    return snap.docs;
+  } catch (err) {
+    console.warn("[repliedPosts] collectionGroup discovery skipped", err);
+    return [];
+  }
 }
 
 /**
@@ -187,29 +188,27 @@ export async function enrichRepliedPostIndexDocs(db, userUid, indexDocs) {
   return rows;
 }
 
-/** Load from posts/.../responses (collectionGroup + direct reads). */
+/** Load replied posts for Profile (index + direct reads only). */
 export async function loadRepliedPostsFromResponses(db, userUid) {
   const responseDocs = await fetchResponderResponseDocs(db, userUid);
   return enrichResponseDocs(db, userUid, responseDocs);
 }
 
 /**
- * One-time migration: copy responses into users/{uid}/repliedPosts index.
+ * Populate users/{uid}/repliedPosts from collectionGroup (once), then return row count.
  * @param {import("firebase/firestore").Firestore} db
  */
 export async function backfillRepliedPostsIndex(db, uid) {
-  const docs = await fetchResponderResponseDocs(db, uid);
-  if (docs.length === 0) return 0;
+  const discovered = await discoverResponsesViaCollectionGroup(db, uid);
 
   await Promise.all(
-    docs.map(async (responseDoc) => {
+    discovered.map(async (responseDoc) => {
       const postId = responseDoc.ref.parent?.parent?.id;
       if (!postId) return;
       const data = responseDoc.data();
-      const patch = { responderUid: uid };
       if (!data.responderUid) {
         try {
-          await setDoc(responseDoc.ref, patch, { merge: true });
+          await setDoc(responseDoc.ref, { responderUid: uid }, { merge: true });
         } catch (err) {
           console.error("[repliedPosts] patch responderUid failed", postId, err);
         }
@@ -222,5 +221,7 @@ export async function backfillRepliedPostsIndex(db, uid) {
       });
     }),
   );
+
+  const docs = await fetchResponderResponseDocs(db, uid);
   return docs.length;
 }
