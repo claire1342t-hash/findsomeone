@@ -29,6 +29,7 @@ import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
+import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.webp";
@@ -130,6 +131,11 @@ function MapPage() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const db = useDb();
+  useDocumentMeta({
+    title: "Map — Findsomeone",
+    description: "Browse posts on the Findsomeone map.",
+    path: "/map",
+  });
   const [posts, setPosts] = useState([]);
   const [clusterPosts, setClusterPosts] = useState([]);
   const [selectedPostId, setSelectedPostId] = useState(null);

@@ -1,8 +1,15 @@
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
+import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
 import "./About.css";
 
 function About() {
+  useDocumentMeta({
+    title: "About — Findsomeone",
+    description: "Learn about Findsomeone.",
+    path: "/about",
+  });
+
   return (
     <div className="home-page app-shell">
       <SiteHeader />

@@ -9,6 +9,7 @@ import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
 import "./Post.css";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -49,6 +50,11 @@ function Post() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const db = useDb();
+  useDocumentMeta({
+    title: "Post — Findsomeone",
+    description: "Create a post on Findsomeone to find someone you spotted.",
+    path: "/post",
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);

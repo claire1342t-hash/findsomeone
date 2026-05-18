@@ -4,10 +4,17 @@ import { Footer } from "./components/Footer.jsx";
 import { FeatureCardImages } from "./components/FeatureCardImages.jsx";
 import { ResponsiveImg } from "./components/ResponsiveImg.jsx";
 import { useLanguage } from "./context/LanguageContext.jsx";
+import { useDocumentMeta } from "./hooks/useDocumentMeta.js";
 import { illustration } from "./utils/illustrationAssets.js";
 
 function App() {
   const { t } = useLanguage();
+  useDocumentMeta({
+    title: "Findsomeone",
+    description:
+      "Spotted someone but didn't say hello? Post it on Findsomeone — they might find you back.",
+    path: "/",
+  });
   const featureCards = [
     {
       id: "map",
