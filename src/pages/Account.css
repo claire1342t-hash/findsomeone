@@ -132,6 +132,22 @@
   line-height: 1.45;
 }
 
+.account-success {
+  margin: 0;
+  font-size: 13px;
+  color: #2e6b4a;
+  line-height: 1.45;
+}
+
+.account-forgot-row {
+  margin: -4px 0 0;
+  text-align: right;
+}
+
+.account-forgot-row .account-link-btn {
+  font-size: 13px;
+}
+
 .account-switch {
   margin: 18px 0 0;
   text-align: center;
@@ -388,39 +404,6 @@
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink);
-}
-
-.profile-reply-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px 12px;
-  margin-bottom: 8px;
-}
-
-.profile-reply-title-row__title {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.profile-reply-title-row__expiry {
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.profile-reply-status-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.profile-reply-status-row__time {
-  flex-shrink: 0;
-  margin-left: auto;
-  text-align: right;
 }
 
 .profile-post-coords {

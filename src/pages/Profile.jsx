@@ -44,15 +44,8 @@ import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { beginMatchCelebration } from "../utils/matchCelebration.js";
-import {
-  backfillRepliedPostsIndex,
-  enrichRepliedPostIndexDocs,
-  loadRepliedPostsFromResponses,
-  upsertRepliedPostIndex,
-} from "../utils/repliedPostsIndex.js";
-import { appearanceTitleFromDescription, appearanceTitleFromPost } from "../utils/postAppearance.js";
+import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
 import "./Account.css";
-import "./ChatList.css";
 
 /**
  * @param {unknown} err
@@ -83,16 +76,6 @@ function createdAtIso(value) {
 
 const MOTIVATION_KEYS = { know: "post.motivation.know", thanks: "post.motivation.thanks", noticed: "post.motivation.noticed" };
 
-function getResponseStatusKind(response) {
-  const status = String(response?.status || "").toLowerCase();
-  const attemptCount = Number(response?.attemptCount ?? 1);
-  if (status === "pending") return "pending";
-  if (status === "rejected" && attemptCount === 1) return "retry";
-  if (status === "rejected" && attemptCount >= 2) return "closed";
-  if (status === "accepted") return "accepted";
-  return "pending";
-}
-
 async function sendProfileNotificationEmail(kind, postId, responseUserId) {
   try {
     await sendEmail({ kind, postId, responseUserId });
@@ -113,12 +96,6 @@ function Profile() {
   const [expandedPostIds, setExpandedPostIds] = useState({});
   const [responseActionBusy, setResponseActionBusy] = useState({});
   const [deletedChatsById, setDeletedChatsById] = useState({});
-  const [repliedPosts, setRepliedPosts] = useState([]);
-  const [repliedPostsLoading, setRepliedPostsLoading] = useState(true);
-  const [repliedPostsError, setRepliedPostsError] = useState("");
-  const repliedPostsLoadGenRef = useRef(0);
-  const repliedPostsBackfillAttemptedRef = useRef(false);
-  const repliedPostsBackfillInFlightRef = useRef(false);
   const [saveError, setSaveError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -144,7 +121,6 @@ function Profile() {
     [expandedPostIds],
   );
   const postsScrollKey = useMemo(() => `${posts.length}-${expandedPostsKey}`, [posts.length, expandedPostsKey]);
-  const repliesScrollKey = useMemo(() => `${repliedPosts.length}`, [repliedPosts.length]);
   const {
     ref: postsScrollInnerRef,
     showFade: postsScrollShowFade,
@@ -163,10 +139,6 @@ function Profile() {
     const id = setInterval(() => setVerificationCooldownTick((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, [user]);
-  const {
-    ref: repliesScrollInnerRef,
-    showFade: repliesScrollShowFade,
-  } = useBottomScrollFade(repliesScrollKey);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -235,85 +207,6 @@ function Profile() {
       },
     );
   }, [user, db]);
-
-  useEffect(() => {
-    if (!user || !db) {
-      setRepliedPosts([]);
-      setRepliedPostsError("");
-      setRepliedPostsLoading(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setRepliedPostsLoading(true);
-    setRepliedPostsError("");
-
-    const indexCol = collection(db, "users", user.uid, "repliedPosts");
-
-    const applyRows = (rows, loadGen) => {
-      if (cancelled || loadGen !== repliedPostsLoadGenRef.current) return;
-      setRepliedPosts(rows);
-      setRepliedPostsError("");
-      setRepliedPostsLoading(false);
-    };
-
-    const loadFromResponsesFallback = async (loadGen) => {
-      try {
-        const rows = await loadRepliedPostsFromResponses(db, user.uid);
-        applyRows(rows, loadGen);
-      } catch (err) {
-        console.error("[Profile] repliedPosts collectionGroup fallback failed", err);
-        if (!cancelled && loadGen === repliedPostsLoadGenRef.current) {
-          setRepliedPostsError(t("profile.repliesLoadError"));
-          setRepliedPostsLoading(false);
-        }
-      }
-    };
-
-    const unsub = onSnapshot(
-      indexCol,
-      (snap) => {
-        const loadGen = (repliedPostsLoadGenRef.current += 1);
-        void (async () => {
-          if (repliedPostsBackfillInFlightRef.current) return;
-
-          if (!snap.empty) {
-            const enriched = await enrichRepliedPostIndexDocs(db, user.uid, snap.docs);
-            applyRows(enriched, loadGen);
-            return;
-          }
-
-          if (!repliedPostsBackfillAttemptedRef.current) {
-            repliedPostsBackfillAttemptedRef.current = true;
-            repliedPostsBackfillInFlightRef.current = true;
-            try {
-              const migrated = await backfillRepliedPostsIndex(db, user.uid);
-              if (migrated > 0) return;
-            } catch (err) {
-              console.error("[Profile] repliedPosts backfill failed", err);
-            } finally {
-              repliedPostsBackfillInFlightRef.current = false;
-            }
-            await loadFromResponsesFallback(loadGen);
-            return;
-          }
-
-          await loadFromResponsesFallback(loadGen);
-        })();
-      },
-      (err) => {
-        console.error("[Profile] repliedPosts listener error", err);
-        const loadGen = (repliedPostsLoadGenRef.current += 1);
-        void loadFromResponsesFallback(loadGen);
-      },
-    );
-
-    return () => {
-      cancelled = true;
-      unsub();
-      repliedPostsBackfillAttemptedRef.current = false;
-    };
-  }, [user, db, t]);
 
   useEffect(() => {
     if (!db || !posts.length) return undefined;
@@ -560,11 +453,6 @@ function Profile() {
         chatId: chatRef.id,
         reviewedAt: serverTimestamp(),
       });
-      await upsertRepliedPostIndex(db, responseUserId, postId, {
-        status: "accepted",
-        chatId: chatRef.id,
-        attemptCount: responseData.attemptCount ?? 1,
-      });
       await sendProfileNotificationEmail("posterAcceptedResponse", postId, responseUserId);
       beginMatchCelebration();
       navigate(`/chat/${chatRef.id}`);
@@ -582,17 +470,10 @@ function Profile() {
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
-      const rejectRef = doc(db, "posts", postId, "responses", responseUserId);
-      const rejectSnap = await getDoc(rejectRef);
-      const priorAttempt = Number(rejectSnap.data()?.attemptCount ?? 1);
-      await updateDoc(rejectRef, {
+      await updateDoc(doc(db, "posts", postId, "responses", responseUserId), {
         status: "rejected",
         attemptCount: increment(1),
         reviewedAt: serverTimestamp(),
-      });
-      await upsertRepliedPostIndex(db, responseUserId, postId, {
-        status: "rejected",
-        attemptCount: priorAttempt + 1,
       });
       await sendProfileNotificationEmail("posterRejectedResponse", postId, responseUserId);
     } catch (err) {
@@ -900,67 +781,6 @@ function Profile() {
           )}
         </section>
 
-        <section className="account-section" aria-labelledby="profile-replies-heading">
-          <h2 id="profile-replies-heading" className="account-section-title">
-            {t("profile.repliesTitle")}
-          </h2>
-          {repliedPostsError ? <p className="account-error" role="alert">{repliedPostsError}</p> : null}
-          {repliedPostsLoading ? (
-            <p className="account-muted">{t("profile.repliesLoading")}</p>
-          ) : repliedPosts.length === 0 && !repliedPostsError ? (
-            <p className="account-muted">{t("profile.repliesEmpty")}</p>
-          ) : (
-            <div
-              className={`profile-scroll-block ${repliesScrollShowFade ? "profile-scroll-block--bottom-fade" : ""}`}
-            >
-              <div
-                ref={repliesScrollInnerRef}
-                className="profile-scroll-block__inner"
-              >
-            <ul className="profile-post-list">
-              {repliedPosts.map((row) => {
-                const responseKind = getResponseStatusKind(row.response);
-                const kind = responseKind === "accepted" && row.chatDeleted ? "chatDeleted" : responseKind;
-                const repliedPostExpiryBadge = getPostExpiryBadge(
-                  row.post?.createdAt,
-                  undefined,
-                  row.post?.isPinned === true,
-                );
-                return (
-                  <li key={row.path} className="profile-post-card">
-                    <div className="profile-reply-title-row">
-                      <p className="profile-post-snippet profile-reply-title-row__title">
-                        {appearanceTitleFromPost(row.post, t, "profile.repliesPostMissing")}
-                      </p>
-                      {repliedPostExpiryBadge ? (
-                        <span
-                          className={`chat-list-item__expiry profile-reply-title-row__expiry chat-list-item__expiry--${repliedPostExpiryBadge.tone}`}
-                        >
-                          {t(repliedPostExpiryBadge.textKey)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="profile-reply-status-row">
-                      <span className={`profile-response-badge profile-response-badge--${kind}`}>
-                        {t(`profile.responseStatus.${kind}`)}
-                      </span>
-                      <span className="chat-list-item__time profile-reply-status-row__time">
-                        {formatRelativeSmart(row.response?.createdAt, language)}
-                      </span>
-                    </div>
-                    {kind === "retry" ? (
-                      <Link className="account-link-btn" to="/map">
-                        {t("profile.retryOnMap")}
-                      </Link>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-              </div>
-            </div>
-          )}
-        </section>
       </main>
       {isAvatarModalOpen ? (
         <div className="profile-picture-modal" role="dialog" aria-modal="true" aria-label={t("profile.avatarTitle")}>
