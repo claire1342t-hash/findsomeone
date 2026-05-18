@@ -51,8 +51,8 @@ function Post() {
   const { user } = useAuth();
   const db = useDb();
   useDocumentMeta({
-    title: "Post — Findsomeone",
-    description: "Create a post on Findsomeone to find someone you spotted.",
+    title: t("meta.post.title"),
+    description: t("meta.post.description"),
     path: "/post",
   });
 

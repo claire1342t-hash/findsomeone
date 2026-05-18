@@ -9,6 +9,7 @@
  * - FIREBASE_WEB_API_KEY (same as client REACT_APP_FIREBASE_API_KEY)
  * - FIREBASE_SERVICE_ACCOUNT_JSON (full service account JSON string)
  * - REPORT_NOTIFY_EMAIL (admin inbox for new report notifications; optional — if unset, reportSubmitted returns ok:false)
+ * - CONTACT_EMAIL (About page contact form; default claire1342t@gmail.com)
  */
 
 import { SignJWT, importPKCS8 } from "jose";
@@ -229,7 +230,55 @@ export default async function handler(request) {
     });
   }
 
-  const { kind, postId, responseUserId, reportType, targetId } = body ?? {};
+  const { kind, postId, responseUserId, reportType, targetId, fromEmail, message } = body ?? {};
+
+  /** About page contact form → site owner inbox. */
+  if (kind === "contact") {
+    const contactTo = String(process.env.CONTACT_EMAIL || "claire1342t@gmail.com").trim();
+    const emailNorm = String(fromEmail || "").trim().toLowerCase();
+    const messageText = String(message || "").trim();
+    if (!emailNorm || !emailNorm.includes("@")) {
+      return new Response(JSON.stringify({ error: "fromEmail required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!messageText || messageText.length < 2) {
+      return new Response(JSON.stringify({ error: "message required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (messageText.length > 5000) {
+      return new Response(JSON.stringify({ error: "message too long" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const resendBody = await sendResend({
+        apiKey: resendKey,
+        from: resendFrom,
+        to: contactTo,
+        subject: "【Findsomeone】聯絡表單訊息",
+        text:
+          "來自 About 頁聯絡表單\n\n" +
+          `寄件者 email：${emailNorm}\n` +
+          `使用者 UID：${uid}\n\n` +
+          messageText,
+      });
+      return new Response(JSON.stringify({ ok: true, resend: resendBody }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      logError("contact failed", String(e?.message || e));
+      return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   /** Notify admin when a user submits a report (no Firestore recipient lookup). */
   if (kind === "reportSubmitted") {

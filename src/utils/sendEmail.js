@@ -14,6 +14,8 @@ const LOG = "[sendEmail:client]";
  *   responseUserId?: string;
  *   reportType?: "post" | "chat";
  *   targetId?: string;
+ *   fromEmail?: string;
+ *   message?: string;
  * }} payload
  */
 export async function sendEmail(payload) {

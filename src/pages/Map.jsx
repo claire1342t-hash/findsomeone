@@ -30,30 +30,24 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
 import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
+import {
+  DEFAULT_REPORT_REASON,
+  isOtherReportReason,
+  REPORT_REASON_OPTIONS,
+} from "../i18n/reportReasons.js";
 import "./Map.css";
 
 import pingIconSrc from "../assets/illustrations/ping.webp";
 
 const TAIPEI_CENTER = [25.033, 121.5654];
 
-function formatDate(createdAt, language) {
+function formatDate(createdAt, language, t) {
   if (!createdAt?.toDate) return "—";
   const date = createdAt.toDate();
   const locale = language === "ja" ? "ja-JP" : language === "en" ? "en-US" : "zh-TW";
   const dateText = new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(date);
   const hour = date.getHours();
-  const dayPeriod =
-    language === "ja"
-      ? hour < 12
-        ? "午前"
-        : "午後"
-      : language === "en"
-        ? hour < 12
-          ? "AM"
-          : "PM"
-        : hour < 12
-          ? "上午"
-          : "下午";
+  const dayPeriod = hour < 12 ? t("map.time.am") : t("map.time.pm");
   return `${dateText} ${dayPeriod}`;
 }
 
@@ -132,8 +126,8 @@ function MapPage() {
   const { user } = useAuth();
   const db = useDb();
   useDocumentMeta({
-    title: "Map — Findsomeone",
-    description: "Browse posts on the Findsomeone map.",
+    title: t("meta.map.title"),
+    description: t("meta.map.description"),
     path: "/map",
   });
   const [posts, setPosts] = useState([]);
@@ -148,7 +142,7 @@ function MapPage() {
   const [verifyLocked, setVerifyLocked] = useState(false);
   const [previousRejectedOnce, setPreviousRejectedOnce] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("不當內容");
+  const [reportReason, setReportReason] = useState(DEFAULT_REPORT_REASON);
   const [reportOtherText, setReportOtherText] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState("");
@@ -199,7 +193,7 @@ function MapPage() {
 
   const resetReportState = () => {
     setReportOpen(false);
-    setReportReason("不當內容");
+    setReportReason(DEFAULT_REPORT_REASON);
     setReportOtherText("");
     setReportBusy(false);
     setReportError("");
@@ -233,9 +227,9 @@ function MapPage() {
     setReportBusy(true);
     setReportError("");
     const trimmedOther = reportOtherText.trim();
-    if (reportReason === "其他" && !trimmedOther) {
+    if (isOtherReportReason(reportReason) && !trimmedOther) {
       setReportBusy(false);
-      setReportError("請填寫其他原因內容。");
+      setReportError(t("report.errorOtherRequired"));
       return;
     }
     try {
@@ -244,7 +238,7 @@ function MapPage() {
         targetId: selectedPost.id,
         reportedBy: user.uid,
         reason: reportReason,
-        reasonDetail: reportReason === "其他" ? trimmedOther : "",
+        reasonDetail: isOtherReportReason(reportReason) ? trimmedOther : "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: "pending",
@@ -269,7 +263,7 @@ function MapPage() {
     if (!db || !selectedPost) return;
     setReportOpen(true);
     setReportError("");
-    setReportReason("不當內容");
+    setReportReason(DEFAULT_REPORT_REASON);
     setReportOtherText("");
     if (!user) {
       setReportSubmittedForPost(false);
@@ -504,7 +498,7 @@ function MapPage() {
                 </p>
                 <p className="map-detail__sub">
                   <strong>{t("map.dateLabel")}：</strong>
-                  {formatDate(selectedPost.createdAt, language)}
+                  {formatDate(selectedPost.createdAt, language, t)}
                 </p>
               </div>
               <div className="map-detail__cta-row">
@@ -520,7 +514,7 @@ function MapPage() {
                   type="button"
                   className="map-detail__report-trigger"
                   onClick={openReportModal}
-                  aria-label="檢舉貼文"
+                  aria-label={t("report.post.aria")}
                 >
                   !
                 </button>
@@ -569,51 +563,52 @@ function MapPage() {
               </section>
             </aside>
             {reportOpen ? (
-              <div className="report-modal-backdrop" role="dialog" aria-modal="true" aria-label="檢舉貼文">
+              <div className="report-modal-backdrop" role="dialog" aria-modal="true" aria-label={t("report.post.aria")}>
                 <div className="report-modal">
-                  <h3>檢舉貼文</h3>
+                  <h3>{t("report.post.title")}</h3>
                   {reportSubmittedForPost ? (
                     <>
-                      <p className="report-modal__ok">您的檢舉已送出，我們會盡快處理。</p>
+                      <p className="report-modal__ok">{t("report.success")}</p>
                       <div className="report-modal__actions">
                         <button type="button" className="report-modal__btn report-modal__btn--primary" onClick={() => setReportOpen(false)}>
-                          確定
+                          {t("report.confirm")}
                         </button>
                       </div>
                     </>
                   ) : (
                     <>
                       <label className="report-modal__label">
-                        原因
+                        {t("report.reason.label")}
                         <select
                           className="report-modal__select"
                           value={reportReason}
                           onChange={(e) => setReportReason(e.target.value)}
                         >
-                          <option value="不當內容">不當內容</option>
-                          <option value="騷擾">騷擾</option>
-                          <option value="垃圾訊息">垃圾訊息</option>
-                          <option value="其他">其他</option>
+                          {REPORT_REASON_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.labelKey)}
+                            </option>
+                          ))}
                         </select>
                       </label>
-                      {reportReason === "其他" ? (
+                      {isOtherReportReason(reportReason) ? (
                         <label className="report-modal__label">
-                          其他內容
+                          {t("report.other.label")}
                           <textarea
                             className="report-modal__textarea"
                             value={reportOtherText}
                             onChange={(e) => setReportOtherText(e.target.value)}
-                            placeholder="請輸入補充內容"
+                            placeholder={t("report.other.placeholder")}
                           />
                         </label>
                       ) : null}
                       {reportError ? <p className="report-modal__error">{reportError}</p> : null}
                       <div className="report-modal__actions">
                         <button type="button" className="report-modal__btn report-modal__btn--ghost" onClick={() => setReportOpen(false)}>
-                          取消
+                          {t("report.cancel")}
                         </button>
                         <button type="button" className="report-modal__btn report-modal__btn--primary" disabled={reportBusy} onClick={submitPostReport}>
-                          {reportBusy ? t("post.saving") : "送出檢舉"}
+                          {reportBusy ? t("post.saving") : t("report.submit")}
                         </button>
                       </div>
                     </>

@@ -1,24 +1,282 @@
+.about-page {
+  --about-title-size: 30px;
+  --about-subtitle-size: 20px;
+  --about-body-size: 16px;
+}
+
 .about-main {
-  gap: 20px;
+  gap: 28px;
 }
 
-.about-hero .hero-copy h1 {
-  margin-top: 0;
+.about-section {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 28px;
 }
 
-.about-grid {
+.about-intro {
+  background: var(--card);
+}
+
+.about-heading {
+  margin: 0;
+  font-family: "Noto Serif TC", serif;
+  font-size: var(--about-title-size);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.about-lead {
+  margin: 18px 0 0;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #555855;
+}
+
+.about-section-title {
+  margin: 0 0 18px;
+  font-family: "Noto Serif TC", serif;
+  font-size: var(--about-title-size);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.about-feature-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-feature-card {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fafafa;
+  padding: 14px 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.about-card h2 {
-  margin-top: 0;
+.about-feature-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(44, 44, 46, 0.07);
 }
 
-.about-card p {
-  margin: 10px 0 0;
-  color: #5d5f5d;
-  font-size: 16px;
-  line-height: 1.55;
+.about-feature-icon {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 24px;
+  line-height: 1;
+  margin: 0;
+}
+
+.about-feature-title {
+  margin: 0;
+  grid-column: 2;
+  font-family: "Noto Serif TC", serif;
+  font-size: var(--about-subtitle-size);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.about-feature-desc {
+  margin: 0;
+  grid-column: 2;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #555855;
+}
+
+.about-author-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fafafa;
+  padding: 22px 20px;
+}
+
+.about-author-name {
+  margin: 0;
+  font-family: "Noto Serif TC", serif;
+  font-size: var(--about-subtitle-size);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.about-author-meta {
+  margin: 6px 0 0;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.about-author-bio {
+  margin: 14px 0 0;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #555855;
+}
+
+.about-contact-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fafafa;
+  padding: 22px 20px;
+}
+
+.about-contact-login-hint {
+  margin: 0 0 14px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #555855;
+}
+
+.about-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.about-link:hover {
+  color: #111;
+}
+
+.about-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.about-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.about-label {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  font-weight: 600;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+.about-input,
+.about-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  color: var(--ink);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.about-input:focus,
+.about-textarea:focus {
+  outline: none;
+  border-color: #a8a8a8;
+  box-shadow: 0 0 0 3px rgba(31, 31, 33, 0.08);
+}
+
+.about-input:disabled,
+.about-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.about-textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.75;
+}
+
+.about-textarea::placeholder {
+  color: #b0b2b0;
+  opacity: 1;
+}
+
+.about-form-error {
+  margin: 0;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #b42318;
+}
+
+.about-form-success {
+  margin: 0;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: #1a6b3c;
+}
+
+.about-submit {
+  align-self: flex-start;
+  border: 1px solid #1f1f21;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: #1f1f21;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.about-submit:hover:not(:disabled) {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.about-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.about-page .email-domain-hint {
+  margin-top: 4px;
+}
+
+.about-page .email-domain-hint__text {
+  margin: 0;
+  font-size: var(--about-body-size);
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.about-page .account-link-btn {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 730px) {
+  .about-section {
+    padding: 22px 18px;
+  }
+
+  .about-submit {
+    width: 100%;
+    text-align: center;
+  }
 }

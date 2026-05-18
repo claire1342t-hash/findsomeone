@@ -10,9 +10,8 @@ import { illustration } from "./utils/illustrationAssets.js";
 function App() {
   const { t } = useLanguage();
   useDocumentMeta({
-    title: "Findsomeone",
-    description:
-      "Spotted someone but didn't say hello? Post it on Findsomeone — they might find you back.",
+    title: t("meta.home.title"),
+    description: t("meta.home.description"),
     path: "/",
   });
   const featureCards = [
@@ -58,7 +57,7 @@ function App() {
             <p className="hero-subtext">{t("hero.sub")}</p>
           </div>
         </section>
-        <section className="feature-grid" aria-label="Feature introduction">
+        <section className="feature-grid" aria-label={t("meta.featureGridAria")}>
           {featureCards.map((card) => (
             <article className="feature-card feature-card--illustration" key={card.id}>
               <FeatureCardImages defaultImage={card.defaultImage} hoverImage={card.hoverImage} />

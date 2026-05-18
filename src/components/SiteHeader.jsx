@@ -41,7 +41,7 @@ export function SiteHeader() {
       <Link className="brand" to="/">
         Findsomeone
       </Link>
-      <nav className="top-nav-center" aria-label="Main navigation">
+      <nav className="top-nav-center" aria-label={t("meta.navMainAria")}>
         {NAV_KEYS.map(({ to, key }) => (
           <Link key={key} className="top-nav-link" to={to}>
             {t(key)}
@@ -53,7 +53,7 @@ export function SiteHeader() {
           </Link>
         ) : null}
       </nav>
-      <div className="top-nav-right" role="group" aria-label="Language and profile">
+      <div className="top-nav-right" role="group" aria-label={t("meta.langProfileAria")}>
         <div className="lang-switcher">
           {SUPPORTED_LANGUAGES.map((lang, index) => (
             <span key={lang.code} className="lang-switcher__item">

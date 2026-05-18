@@ -1,3 +1,5 @@
+import { messages } from "../i18n/messages.js";
+
 /**
  * Whole local-calendar days from `past` (midnight) to `now` (midnight).
  * 0 = same calendar day, 1 = previous calendar day (yesterday), 2 = two days ago, etc.
@@ -9,24 +11,30 @@ export function localCalendarDaysBefore(past, now = new Date()) {
   return Math.max(0, diff);
 }
 
+function pickMessage(language, key) {
+  const table = messages[language] || messages.zh;
+  if (table && Object.prototype.hasOwnProperty.call(table, key)) {
+    return table[key];
+  }
+  return messages.zh[key] ?? key;
+}
+
+function formatMessage(language, key, vars = {}) {
+  let text = pickMessage(language, key);
+  for (const [name, value] of Object.entries(vars)) {
+    text = text.replaceAll(`{${name}}`, String(value));
+  }
+  return text;
+}
+
 /** Map list / coarse: Today, Yesterday, or "X days ago" (calendar-based). */
 export function formatRelativeCalendarDay(value, language, now = new Date()) {
   if (!value?.toDate) return "—";
   const past = value.toDate();
   const d = localCalendarDaysBefore(past, now);
-  if (d === 0) {
-    if (language === "en") return "Today";
-    if (language === "ja") return "今日";
-    return "今天";
-  }
-  if (d === 1) {
-    if (language === "en") return "Yesterday";
-    if (language === "ja") return "昨日";
-    return "昨天";
-  }
-  if (language === "en") return `${d}d ago`;
-  if (language === "ja") return `${d}日前`;
-  return `${d}天前`;
+  if (d === 0) return formatMessage(language, "time.today");
+  if (d === 1) return formatMessage(language, "time.yesterday");
+  return formatMessage(language, "time.daysAgo", { n: d });
 }
 
 /**
@@ -40,30 +48,20 @@ export function formatRelativeSmart(value, language, now = new Date(), emptyFall
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
   if (diffMinutes < 1) {
-    if (language === "en") return "Just now";
-    if (language === "ja") return "たった今";
-    return "剛剛";
+    return formatMessage(language, "time.justNow");
   }
   if (diffMinutes < 60) {
-    if (language === "en") return `${diffMinutes}m ago`;
-    if (language === "ja") return `${diffMinutes}分前`;
-    return `${diffMinutes}分鐘前`;
+    return formatMessage(language, "time.minutesAgo", { n: diffMinutes });
   }
 
   const calendarD = localCalendarDaysBefore(past, now);
 
   if (calendarD === 0) {
     const hr = Math.floor(diffMinutes / 60);
-    if (language === "en") return `${hr}h ago`;
-    if (language === "ja") return `${hr}時間前`;
-    return `${hr}小時前`;
+    return formatMessage(language, "time.hoursAgo", { n: hr });
   }
   if (calendarD === 1) {
-    if (language === "en") return "Yesterday";
-    if (language === "ja") return "昨日";
-    return "昨天";
+    return formatMessage(language, "time.yesterday");
   }
-  if (language === "en") return `${calendarD}d ago`;
-  if (language === "ja") return `${calendarD}日前`;
-  return `${calendarD}天前`;
+  return formatMessage(language, "time.daysAgo", { n: calendarD });
 }

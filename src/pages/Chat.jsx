@@ -19,6 +19,11 @@ import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { deleteChatCascade } from "../utils/postLifecycle.js";
+import {
+  DEFAULT_REPORT_REASON,
+  isOtherReportReason,
+  REPORT_REASON_OPTIONS,
+} from "../i18n/reportReasons.js";
 import "./Chat.css";
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
@@ -39,7 +44,7 @@ export default function ChatPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [expired, setExpired] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("不當內容");
+  const [reportReason, setReportReason] = useState(DEFAULT_REPORT_REASON);
   const [reportOtherText, setReportOtherText] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState("");
@@ -147,8 +152,8 @@ export default function ChatPage() {
   const submitChatReport = async () => {
     if (!db || !chatId || !user) return;
     const trimmedOther = reportOtherText.trim();
-    if (reportReason === "其他" && !trimmedOther) {
-      setReportError("請填寫其他原因內容。");
+    if (isOtherReportReason(reportReason) && !trimmedOther) {
+      setReportError(t("report.errorOtherRequired"));
       return;
     }
     setReportBusy(true);
@@ -159,7 +164,7 @@ export default function ChatPage() {
         targetId: chatId,
         reportedBy: user.uid,
         reason: reportReason,
-        reasonDetail: reportReason === "其他" ? trimmedOther : "",
+        reasonDetail: isOtherReportReason(reportReason) ? trimmedOther : "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: "pending",
@@ -170,7 +175,7 @@ export default function ChatPage() {
         console.error("[Chat] report admin notify email failed", mailErr);
       }
       setReportSubmittedForChat(true);
-      setReportReason("不當內容");
+      setReportReason(DEFAULT_REPORT_REASON);
       setReportOtherText("");
     } catch (err) {
       console.error(err);
@@ -184,7 +189,7 @@ export default function ChatPage() {
     if (!db || !chatId) return;
     setReportOpen(true);
     setReportError("");
-    setReportReason("不當內容");
+    setReportReason(DEFAULT_REPORT_REASON);
     setReportOtherText("");
     if (!user) {
       setReportSubmittedForChat(false);
@@ -230,7 +235,7 @@ export default function ChatPage() {
                       className="chat-end-btn chat-report-btn"
                       onClick={openChatReportModal}
                     >
-                      檢舉
+                      {t("report.menu")}
                     </button>
                     <button type="button" className="chat-end-btn" onClick={endChat}>
                       {t("chat.endButton")}
@@ -283,12 +288,12 @@ export default function ChatPage() {
         </Link>
       </main>
       {reportOpen ? (
-        <div className="chat-report-modal-backdrop" role="dialog" aria-modal="true" aria-label="檢舉聊天室">
+        <div className="chat-report-modal-backdrop" role="dialog" aria-modal="true" aria-label={t("report.chat.aria")}>
           <div className="chat-report-modal">
-            <h3>檢舉聊天室</h3>
+            <h3>{t("report.chat.title")}</h3>
             {reportSubmittedForChat ? (
               <>
-                <p className="chat-report-modal__ok">您的檢舉已送出，我們會盡快處理。</p>
+                <p className="chat-report-modal__ok">{t("report.success")}</p>
                 <div className="chat-report-modal__actions">
                   <button
                     type="button"
@@ -298,33 +303,34 @@ export default function ChatPage() {
                       setMenuOpen(false);
                     }}
                   >
-                    確定
+                    {t("report.confirm")}
                   </button>
                 </div>
               </>
             ) : (
               <>
                 <label className="chat-report-modal__label">
-                  原因
+                  {t("report.reason.label")}
                   <select
                     className="chat-report-modal__select"
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
                   >
-                    <option value="不當內容">不當內容</option>
-                    <option value="騷擾">騷擾</option>
-                    <option value="垃圾訊息">垃圾訊息</option>
-                    <option value="其他">其他</option>
+                    {REPORT_REASON_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {t(opt.labelKey)}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                {reportReason === "其他" ? (
+                {isOtherReportReason(reportReason) ? (
                   <label className="chat-report-modal__label">
-                    其他內容
+                    {t("report.other.label")}
                     <textarea
                       className="chat-report-modal__textarea"
                       value={reportOtherText}
                       onChange={(e) => setReportOtherText(e.target.value)}
-                      placeholder="請輸入補充內容"
+                      placeholder={t("report.other.placeholder")}
                     />
                   </label>
                 ) : null}
@@ -335,7 +341,7 @@ export default function ChatPage() {
                     className="chat-report-modal__btn chat-report-modal__btn--ghost"
                     onClick={() => setReportOpen(false)}
                   >
-                    取消
+                    {t("report.cancel")}
                   </button>
                   <button
                     type="button"
@@ -343,7 +349,7 @@ export default function ChatPage() {
                     disabled={reportBusy}
                     onClick={submitChatReport}
                   >
-                    {reportBusy ? t("post.saving") : "送出檢舉"}
+                    {reportBusy ? t("post.saving") : t("report.submit")}
                   </button>
                 </div>
               </>
