@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -11,6 +10,7 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
+import { requestPasswordReset } from "../utils/passwordReset.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
 import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
@@ -125,18 +125,12 @@ function Login() {
     setSuccess("");
     setBusy(true);
     try {
-      const auth = await getFirebaseAuth();
       const emailNorm = email.trim().toLowerCase();
       if (!emailNorm) {
         setError(t("login.errorInvalidEmail"));
         return;
       }
-      const action = getEmailVerificationActionSettings();
-      if (action) {
-        await sendPasswordResetEmail(auth, emailNorm, action);
-      } else {
-        await sendPasswordResetEmail(auth, emailNorm);
-      }
+      await requestPasswordReset(emailNorm);
       setSuccess(t("login.forgotSuccess"));
     } catch (err) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
