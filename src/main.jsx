@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -27,6 +28,7 @@ root.render(
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />
+          <Analytics />
         </AuthProvider>
       </BrowserRouter>
     </LanguageProvider>
