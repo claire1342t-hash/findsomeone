@@ -592,7 +592,7 @@ export const messages = {
       "Don’t want to wait 7 days? Use “End chat” in the room to close it anytime and delete all messages.",
     "about.author.title": "Author",
     "about.author.bio":
-      "Hi! I’m Claire, 22, teaching myself to build websites. I have lots of wild ideas—happy to collaborate if you’re interested.",
+      "Hi! I’m Claire, 22, teaching myself to build websites. I have lots of creative ideas—happy to collaborate if you’re interested.",
     "about.contact.title": "Contact me",
     "about.contact.loginBefore": "Please",
     "about.contact.loginLink": "sign in",
