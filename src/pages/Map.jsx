@@ -169,6 +169,18 @@ function MapPage() {
   );
   const { ref: leftScrollRef, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
   const { ref: rightScrollRef, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
+  useEffect(() => {
+    if (!verifyOpen) return undefined;
+    const panel = rightScrollRef.current;
+    if (!panel) return undefined;
+
+    const scrollToBottom = () => {
+      panel.scrollTo({ top: panel.scrollHeight, behavior: "smooth" });
+    };
+
+    const t = window.setTimeout(scrollToBottom, 320);
+    return () => window.clearTimeout(t);
+  }, [verifyOpen, selectedPostId, rightScrollRef]);
 
   useEffect(() => {
     if (!db) return undefined;
