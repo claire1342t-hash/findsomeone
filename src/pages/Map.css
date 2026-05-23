@@ -709,10 +709,18 @@
     justify-items: center;
     grid-template-columns: 1fr;
   }
+
+  /* Detail / sheet content: bottom 55%; map visible area: top 45% */
+  .map-sheet.is-split {
+    top: 45dvh;
+    bottom: max(0px, env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+  }
+
   .map-sheet:not(.is-split) {
     top: max(115px, calc(env(safe-area-inset-top, 0px) + 115px));
   }
-
 }
 
 @media (max-width: 470px) {
