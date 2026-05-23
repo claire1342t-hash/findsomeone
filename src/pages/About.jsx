@@ -109,10 +109,26 @@ function About() {
         </section>
 
         <section className="about-section about-privacy" aria-labelledby="about-privacy-title">
-          <h2 id="about-privacy-title" className="about-section-title">
+          <h2 id="about-privacy-title" className="about-section-title about-anchor-target">
             {t("about.privacy.title")}
           </h2>
-          <p className="about-lead">{t("about.privacy.body")}</p>
+          <p className="about-lead">{t("about.privacy.lead1")}</p>
+          <p className="about-lead">{t("about.privacy.lead2")}</p>
+          <p className="about-lead">{t("about.privacy.lead3")}</p>
+          <p className="about-lead">{t("about.privacy.lead4")}</p>
+          <p className="about-lead">{t("about.privacy.lead5")}</p>
+          <p className="about-lead">{t("about.privacy.lead6")}</p>
+        </section>
+
+        <section className="about-section about-terms" aria-labelledby="about-terms-title">
+          <h2 id="about-terms-title" className="about-section-title about-anchor-target">
+            {t("about.terms.title")}
+          </h2>
+          <p className="about-lead">{t("about.terms.lead1")}</p>
+          <p className="about-lead">{t("about.terms.lead2")}</p>
+          <p className="about-lead">{t("about.terms.lead3")}</p>
+          <p className="about-lead">{t("about.terms.lead4")}</p>
+          <p className="about-lead">{t("about.terms.lead5")}</p>
         </section>
 
         <section className="about-section" aria-labelledby="about-mechanism-title">
@@ -121,7 +137,11 @@ function About() {
           </h2>
           <div className="about-feature-grid">
             {MECHANISM_FEATURE_IDS.map((id) => (
-              <article className="about-feature-card" key={id}>
+              <article
+                className="about-feature-card"
+                key={id}
+                id={id === "report" ? "about-feature-report" : undefined}
+              >
                 <span className="about-feature-icon" aria-hidden>
                   {FEATURE_ICONS[id]}
                 </span>
@@ -142,8 +162,16 @@ function About() {
           </article>
         </section>
 
+        <section className="about-section about-trust" aria-labelledby="about-trust-title">
+          <h2 id="about-trust-title" className="about-section-title about-anchor-target">
+            {t("about.trust.title")}
+          </h2>
+          <p className="about-lead">{t("about.trust.report")}</p>
+          <p className="about-lead">{t("about.trust.contact")}</p>
+        </section>
+
         <section className="about-section about-contact" aria-labelledby="about-contact-title">
-          <h2 id="about-contact-title" className="about-section-title">
+          <h2 id="about-contact-title" className="about-section-title about-anchor-target">
             {t("about.contact.title")}
           </h2>
           <div className="about-contact-card">

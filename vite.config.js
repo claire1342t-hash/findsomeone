@@ -17,6 +17,13 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (
+            id.includes("node_modules/leaflet") ||
+            id.includes("leaflet.markercluster") ||
+            id.includes("node_modules/react-leaflet")
+          ) {
+            return "leaflet";
+          }
+          if (
             id.includes("node_modules/react-dom") ||
             /\/node_modules\/react\//.test(id) ||
             id.includes("node_modules/scheduler")

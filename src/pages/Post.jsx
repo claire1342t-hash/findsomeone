@@ -10,6 +10,8 @@ import { Footer } from "../components/Footer.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
+import { ensureUserNotBanned } from "../utils/userBan.js";
+import { normalizeText, validatePostForm } from "../utils/textValidation.js";
 import "./Post.css";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -136,8 +138,9 @@ function Post() {
       setSubmitError(t("post.needLogin"));
       return;
     }
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-    if (userSnap.exists() && userSnap.data()?.isBanned === true) {
+    try {
+      await ensureUserNotBanned(db, user.uid);
+    } catch {
       setSubmitError(t("post.errorBanned"));
       return;
     }
@@ -145,22 +148,23 @@ function Post() {
       setSubmitError(t("post.errorPin"));
       return;
     }
-    const trimmedLocationDescription = locationDescription.trim();
-    if (!trimmedLocationDescription) {
-      setSubmitError(t("post.errorLocationDescription"));
-      return;
-    }
-    const trimmedAppearance = appearance.trim();
-    const trimmedStory = story.trim();
-    const trimmedCustomMotivation = customMotivation.trim();
-    const trimmedQuestion1 = question1.trim();
-    const trimmedQuestion2 = question2.trim();
-    if (!trimmedAppearance || !trimmedStory || !trimmedQuestion1 || !trimmedQuestion2) {
-      setSubmitError(t("post.errorRequiredFields"));
-      return;
-    }
-    if (motivation === "custom" && !trimmedCustomMotivation) {
-      setSubmitError(t("post.errorCustomMotivation"));
+    const trimmedLocationDescription = normalizeText(locationDescription);
+    const trimmedAppearance = normalizeText(appearance);
+    const trimmedStory = normalizeText(story);
+    const trimmedCustomMotivation = normalizeText(customMotivation);
+    const trimmedQuestion1 = normalizeText(question1);
+    const trimmedQuestion2 = normalizeText(question2);
+    const validationKey = validatePostForm({
+      locationDescription: trimmedLocationDescription,
+      appearance: trimmedAppearance,
+      story: trimmedStory,
+      question1: trimmedQuestion1,
+      question2: trimmedQuestion2,
+      motivation,
+      customMotivation: trimmedCustomMotivation,
+    });
+    if (validationKey) {
+      setSubmitError(t(validationKey));
       return;
     }
     setSubmitBusy(true);

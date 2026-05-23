@@ -118,6 +118,23 @@
   color: #444;
 }
 
+.admin-user-ban-btn {
+  border-color: #ef5350;
+  background: #ef5350;
+  color: #fff;
+}
+
+.admin-user-ban-btn:hover:not(:disabled) {
+  border-color: #d32f2f;
+  background: #d32f2f;
+}
+
+.admin-user-unban-btn {
+  border-color: #2e6b4a;
+  background: #e8f5ee;
+  color: #1f5c3a;
+}
+
 .admin-actions-cell button:disabled {
   opacity: 0.55;
   cursor: not-allowed;

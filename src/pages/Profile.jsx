@@ -45,6 +45,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { beginMatchCelebration } from "../utils/matchCelebration.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
+import { ensureUserNotBanned } from "../utils/userBan.js";
 import "./Account.css";
 
 /**
@@ -73,8 +74,6 @@ function createdAtIso(value) {
   if (!value?.toDate) return undefined;
   return value.toDate().toISOString();
 }
-
-const MOTIVATION_KEYS = { know: "post.motivation.know", thanks: "post.motivation.thanks", noticed: "post.motivation.noticed" };
 
 async function sendProfileNotificationEmail(kind, postId, responseUserId) {
   try {
@@ -398,6 +397,7 @@ function Profile() {
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
+      await ensureUserNotBanned(db, user.uid);
       const responseRef = doc(db, "posts", postId, "responses", responseUserId);
       const responseSnap = await getDoc(responseRef);
       if (!responseSnap.exists()) return;
@@ -470,6 +470,7 @@ function Profile() {
     const busyKey = `${postId}:${responseUserId}`;
     setResponseActionBusy((prev) => ({ ...prev, [busyKey]: true }));
     try {
+      await ensureUserNotBanned(db, user.uid);
       await updateDoc(doc(db, "posts", postId, "responses", responseUserId), {
         status: "rejected",
         attemptCount: increment(1),

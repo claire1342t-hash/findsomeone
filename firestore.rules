@@ -4,31 +4,128 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+
     function isAdmin() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-    function ownsPostById(postId) {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)/ownedPosts/$(postId)).data.authorUid == request.auth.uid;
+
+    function postDoc(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId));
     }
 
+    function ownedPostsDoc(userId, postId) {
+      return get(/databases/$(database)/documents/users/$(userId)/ownedPosts/$(postId));
+    }
+
+    function ownedPostsMatchesPost(userId, postId, claimToken) {
+      return exists(/databases/$(database)/documents/posts/$(postId))
+        && exists(/databases/$(database)/documents/users/$(userId)/ownedPosts/$(postId))
+        && postDoc(postId).data.authorUid == userId
+        && ownedPostsDoc(userId, postId).data.authorUid == userId
+        && postDoc(postId).data.claimToken == claimToken
+        && ownedPostsDoc(userId, postId).data.claimToken == claimToken;
+    }
+
+    function ownsPostById(postId) {
+      return isSignedIn()
+        && ownedPostsMatchesPost(request.auth.uid, postId, ownedPostsDoc(request.auth.uid, postId).data.claimToken);
+    }
+
+    function privilegedUserFieldsSafeOnCreate() {
+      return (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false)
+        && (!('isBanned' in request.resource.data) || request.resource.data.isBanned == false);
+    }
+
+    function privilegedUserFieldsUnchanged() {
+      return request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+        && request.resource.data.get('isBanned', false) == resource.data.get('isBanned', false);
+    }
+
+    function postAuthorUid(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId)).data.authorUid;
+    }
+
+    function isPostAuthor(postId) {
+      return isSignedIn() && request.auth.uid == postAuthorUid(postId);
+    }
+
+    function chatDoc(chatId) {
+      return get(/databases/$(database)/documents/chats/$(chatId));
+    }
+
+    function isChatParticipant(chatId) {
+      return isSignedIn()
+        && chatDoc(chatId).data.participants is list
+        && chatDoc(chatId).data.participants.hasAny([request.auth.uid]);
+    }
+
+    function canAccessChat(chatId) {
+      let chat = chatDoc(chatId).data;
+      return isSignedIn() && (
+        (chat.participants is list && chat.participants.hasAny([request.auth.uid]))
+        || request.auth.uid == chat.posterUid
+        || request.auth.uid == chat.responderUid
+        || (chat.postId is string && ownsPostById(chat.postId))
+      );
+    }
+
+    function isNotBanned() {
+      return isSignedIn()
+        && (
+          !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) != true
+        );
+    }
+
+    // Admin: full access (isAdmin must only be set via Console / Admin SDK).
     match /{document=**} {
       allow read, write: if isAdmin();
     }
 
     match /users/{userId} {
-      allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && privilegedUserFieldsSafeOnCreate();
+
+      allow update: if isNotBanned()
+        && request.auth.uid == userId
+        && privilegedUserFieldsUnchanged();
+
+      allow delete: if isSignedIn() && request.auth.uid == userId;
 
       match /repliedPosts/{postId} {
-        allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create, update, delete: if isNotBanned() && request.auth.uid == userId;
       }
     }
 
     match /users/{userId}/ownedPosts/{postId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && request.auth.uid == userId;
+
+      // Create only for new posts (batch with posts/{postId}) or matching existing post you own.
+      allow create: if isNotBanned()
+        && request.auth.uid == userId
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.claimToken is string
+        && request.resource.data.claimToken.size() > 0
+        && (
+          !exists(/databases/$(database)/documents/posts/$(postId))
+          || ownedPostsMatchesPost(userId, postId, request.resource.data.claimToken)
+        );
+
+      allow update: if false;
+
+      allow delete: if isNotBanned()
+        && request.auth.uid == userId
+        && resource.data.authorUid == request.auth.uid
+        && (
+          !exists(/databases/$(database)/documents/posts/$(postId))
+          || ownedPostsMatchesPost(userId, postId, resource.data.claimToken)
+        );
     }
 
     match /posts/{postId} {
@@ -41,8 +138,8 @@ service cloud.firestore {
 
       allow read: if true;
 
-      allow create: if isSignedIn()
-        && !(request.resource.data.keys().hasAll(["uid"]))
+      allow create: if isNotBanned()
+        && !('uid' in request.resource.data)
         && request.resource.data.keys().hasAll([
           "authorUid",
           "authorPublicId",
@@ -58,109 +155,195 @@ service cloud.firestore {
         && request.resource.data.claimToken == ownedPostsLinkAfter().data.claimToken
         && ownedPostsLinkAfter().data.authorUid == request.auth.uid;
 
-      allow update, delete: if isSignedIn()
+      allow update: if isNotBanned()
+        && resource.data.claimToken == ownedPostsLink().data.claimToken
+        && ownedPostsLink().data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.claimToken == resource.data.claimToken
+        && request.resource.data.authorPublicId == resource.data.authorPublicId
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isNotBanned()
         && resource.data.claimToken == ownedPostsLink().data.claimToken
         && ownedPostsLink().data.authorUid == request.auth.uid;
 
       match /responses/{responseUserId} {
-        allow create: if isSignedIn()
+        function responsePrivilegedFieldsFrozen() {
+          return request.resource.data.get('chatId', '') == resource.data.get('chatId', '')
+            && request.resource.data.get('reviewedAt', null) == resource.data.get('reviewedAt', null);
+        }
+
+        function responderResponseCreateValid() {
+          return request.resource.data.status == 'pending'
+            && request.resource.data.get('attemptCount', 0) == 1
+            && !('chatId' in request.resource.data)
+            && !('reviewedAt' in request.resource.data);
+        }
+
+        function responderResponseUpdateValid() {
+          let prevStatus = resource.data.get('status', 'pending');
+          let prevAttempts = resource.data.get('attemptCount', 1);
+          let nextAttempts = request.resource.data.get('attemptCount', 1);
+          return request.resource.data.status == 'pending'
+            && prevStatus != 'accepted'
+            && !(prevStatus == 'rejected' && prevAttempts >= 2)
+            && responsePrivilegedFieldsFrozen()
+            && (
+              (prevStatus == 'pending' && nextAttempts == prevAttempts)
+              || (prevStatus == 'rejected' && prevAttempts == 1 && nextAttempts == 2)
+            );
+        }
+
+        function responderMutableKeysOnly() {
+          return request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['answers', 'responderUid', 'responderAnonymousName', 'createdAt', 'status', 'attemptCount']);
+        }
+
+        allow create: if isNotBanned()
           && request.auth.uid == responseUserId
           && request.resource.data.responderUid == responseUserId
-          && request.auth.uid != get(/databases/$(database)/documents/posts/$(postId)).data.authorUid;
+          && request.auth.uid != postAuthorUid(postId)
+          && responderResponseCreateValid();
 
-        allow update: if isSignedIn()
+        allow update: if isNotBanned()
           && request.auth.uid == responseUserId
+          && resource.data.responderUid == responseUserId
           && request.resource.data.responderUid == responseUserId
-          && request.auth.uid != get(/databases/$(database)/documents/posts/$(postId)).data.authorUid;
+          && request.auth.uid != postAuthorUid(postId)
+          && responderResponseUpdateValid()
+          && responderMutableKeysOnly();
 
-        allow update: if isSignedIn()
-          && ownsPostById(postId);
+        allow update: if isNotBanned()
+          && ownsPostById(postId)
+          && request.resource.data.responderUid == resource.data.responderUid
+          && request.resource.data.status in ['accepted', 'rejected']
+          && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'chatId', 'reviewedAt', 'attemptCount'])
+          && (
+            request.resource.data.status != 'accepted'
+            || (
+              request.resource.data.chatId is string
+              && request.resource.data.chatId.size() > 0
+            )
+          );
 
-        allow delete: if isSignedIn()
-          && ownsPostById(postId);
+        allow delete: if isNotBanned() && ownsPostById(postId);
 
         allow get: if isSignedIn() && (
-          request.auth.uid == resource.data.responderUid ||
-          request.auth.uid == responseUserId ||
-          ownsPostById(postId)
+          request.auth.uid == resource.data.responderUid
+          || request.auth.uid == responseUserId
+          || ownsPostById(postId)
         );
 
-        // Post owner listing responses on their post (subcollection listener).
-        allow list: if isSignedIn() && ownsPostById(postId);
+        allow list: if isNotBanned() && ownsPostById(postId);
       }
     }
 
-    // Collection-group queries on `responses` (e.g. Profile "posts I responded to").
-    // Kept separate from ownsPostById so list rules match responderUid equality queries.
     match /{path=**}/responses/{responseUserId} {
       allow get: if isSignedIn() && (
-        request.auth.uid == resource.data.responderUid ||
-        request.auth.uid == responseUserId
+        request.auth.uid == resource.data.responderUid
+        || request.auth.uid == responseUserId
       );
       allow list: if isSignedIn() && request.auth.uid == resource.data.responderUid;
     }
 
     match /chats/{chatId} {
-      allow create: if isSignedIn()
+      allow create: if isNotBanned()
         && request.resource.data.posterUid == request.auth.uid
+        && request.resource.data.postId is string
+        && ownsPostById(request.resource.data.postId)
+        && request.resource.data.responderUid != request.auth.uid
         && request.resource.data.participants is list
-        && request.resource.data.participants.hasAll([request.auth.uid])
+        && request.resource.data.participants.hasAll([
+          request.auth.uid,
+          request.resource.data.responderUid,
+        ])
         && request.resource.data.participants.size() == 2;
 
-      allow read, delete: if isSignedIn()
+      allow read: if isSignedIn()
         && (
-          (
-            resource.data.participants is list
-            && resource.data.participants.hasAny([request.auth.uid])
-          ) ||
-          request.auth.uid == resource.data.posterUid ||
-          request.auth.uid == resource.data.responderUid ||
-          (
-            resource.data.postId is string
-            && ownsPostById(resource.data.postId)
-          )
+          (resource.data.participants is list && resource.data.participants.hasAny([request.auth.uid]))
+          || request.auth.uid == resource.data.posterUid
+          || request.auth.uid == resource.data.responderUid
+          || (resource.data.postId is string && ownsPostById(resource.data.postId))
         );
 
-      allow update: if isSignedIn() && (
-        (
-          resource.data.participants is list
-          && resource.data.participants.hasAny([request.auth.uid])
-        ) ||
-        (
-          request.resource.data.posterUid == request.auth.uid
-          && request.resource.data.participants is list
-          && request.resource.data.participants.hasAll([request.auth.uid])
-          && request.resource.data.participants.size() == 2
-        )
-      );
+      allow delete: if isNotBanned()
+        && (
+          (resource.data.participants is list && resource.data.participants.hasAny([request.auth.uid]))
+          || request.auth.uid == resource.data.posterUid
+          || request.auth.uid == resource.data.responderUid
+          || (resource.data.postId is string && ownsPostById(resource.data.postId))
+        );
+
+      allow update: if isNotBanned()
+        && request.auth.uid == resource.data.posterUid
+        && resource.data.postId is string
+        && ownsPostById(resource.data.postId)
+        && request.resource.data.posterUid == resource.data.posterUid
+        && request.resource.data.responderUid == resource.data.responderUid
+        && request.resource.data.postId == resource.data.postId
+        && request.resource.data.participants == resource.data.participants;
+
+      allow update: if isNotBanned()
+        && resource.data.participants is list
+        && resource.data.participants.hasAny([request.auth.uid])
+        && request.resource.data.posterUid == resource.data.posterUid
+        && request.resource.data.responderUid == resource.data.responderUid
+        && request.resource.data.postId == resource.data.postId
+        && request.resource.data.participants == resource.data.participants
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastMessageText', 'lastMessageSenderRole', 'updatedAt']);
 
       match /messages/{messageId} {
-        allow create: if isSignedIn()
+        allow create: if isNotBanned()
+          && isChatParticipant(chatId)
+          && request.resource.data.keys().hasAll(['senderRole', 'text', 'createdAt'])
+          && request.resource.data.senderRole in ['poster', 'responder', 'system']
           && (
-            get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) ||
-            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.posterUid ||
-            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.responderUid ||
             (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.postId is string
-              && ownsPostById(get(/databases/$(database)/documents/chats/$(chatId)).data.postId)
+              request.resource.data.senderRole == 'poster'
+              && request.auth.uid == chatDoc(chatId).data.posterUid
+            ) || (
+              request.resource.data.senderRole == 'responder'
+              && request.auth.uid == chatDoc(chatId).data.responderUid
+            ) || (
+              request.resource.data.senderRole == 'system'
+              && isChatParticipant(chatId)
             )
           );
 
-        allow read, delete: if isSignedIn()
-          && (
-            get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) ||
-            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.posterUid ||
-            request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.responderUid ||
-            (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.postId is string
-              && ownsPostById(get(/databases/$(database)/documents/chats/$(chatId)).data.postId)
-            )
-          );
+        allow read: if canAccessChat(chatId);
+
+        allow delete: if isNotBanned() && isChatParticipant(chatId);
       }
     }
 
+    // In-app notifications: immutable after create (no client update/delete).
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.recipientUid == request.auth.uid;
+
+      allow list: if isSignedIn() && resource.data.recipientUid == request.auth.uid;
+
+      allow create: if isNotBanned()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && request.resource.data.read == false
+        && request.resource.data.keys().hasAll([
+          "recipientUid",
+          "actorUid",
+          "type",
+          "createdAt",
+          "read",
+        ]);
+
+      allow update, delete: if false;
+    }
+
     match /reports/{reportId} {
-      allow create: if isSignedIn()
+      allow create: if isNotBanned()
         && request.resource.data.reportedBy == request.auth.uid
         && request.resource.data.keys().hasAll([
           "type",
@@ -170,7 +353,7 @@ service cloud.firestore {
           "reasonDetail",
           "status",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
         ]);
 
       allow read: if isSignedIn()

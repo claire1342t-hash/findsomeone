@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useLocation } from "react-router-dom";
 import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
 import { deferUntilIdle } from "../lib/deferUntilIdle.js";
+import { isUserBanned } from "../utils/userBan.js";
 
 const AuthContext = createContext(null);
 
@@ -9,17 +10,20 @@ const IDLE_AUTH_PATHS = new Set(["/", "/about"]);
 
 async function syncUserDocument(user) {
   if (!user) return;
-  const [{ doc, setDoc }, db] = await Promise.all([import("firebase/firestore"), getDb()]);
+  const [{ doc, getDoc, setDoc }, db] = await Promise.all([import("firebase/firestore"), getDb()]);
   const ref = doc(db, "users", user.uid);
   const emailNorm = String(user.email ?? "").trim().toLowerCase();
-  await setDoc(
-    ref,
-    {
-      email: emailNorm,
-      displayName: user.displayName || (emailNorm ? emailNorm.split("@")[0] : "") || "User",
-    },
-    { merge: true },
-  );
+  const snap = await getDoc(ref);
+  const authName = String(user.displayName ?? "").trim();
+  const existingName = String(snap.data()?.displayName ?? "").trim();
+  const fallbackName = emailNorm.split("@")[0] || "User";
+  const payload = { email: emailNorm };
+  if (authName) {
+    payload.displayName = authName;
+  } else if (!existingName) {
+    payload.displayName = fallbackName;
+  }
+  await setDoc(ref, payload, { merge: true });
 }
 
 export function AuthProvider({ children }) {
@@ -39,14 +43,22 @@ export function AuthProvider({ children }) {
         const { onAuthStateChanged } = await import("firebase/auth");
         if (cancelled) return;
         unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-          setUser(nextUser);
           if (nextUser) {
             try {
+              const db = await getDb();
+              if (await isUserBanned(db, nextUser.uid)) {
+                const { signOut: firebaseSignOut } = await import("firebase/auth");
+                await firebaseSignOut(auth);
+                setUser(null);
+                setLoading(false);
+                return;
+              }
               await syncUserDocument(nextUser);
             } catch (e) {
-              console.error("syncUserDocument", e);
+              console.error("auth profile sync", e);
             }
           }
+          setUser(nextUser);
           setLoading(false);
         });
       })();

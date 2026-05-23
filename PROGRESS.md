@@ -65,21 +65,76 @@ navbar大小變更
 - About 頁面暫時回退為「About page coming soon」佔位內容
 
 
-## 🔧 待修正
-通知系統（發文者收到「有人回覆」的通知）站內通知中心或 Email 通知
-About 頁面完成（品牌故事、功能介紹、作者介紹、聯絡信封）
-安全性（重要，上線前必須修）
-Firestore rules — 通知權限過寬，其他用戶可以 update 別人的通知，改成只允許 create
-ownedPosts — 客戶端可偽造 ownership，改用 posts.authorUid 做驗證據
-responder 可竄改 response 的 status/attemptCount，加欄位限制功能 bug
-4. Map 驗證狀態只做一次 getDoc，改成 onSnapshot 即時同步
-5. 註冊時 displayName 時序競態，可能寫入錯誤名字
-6. 動機標籤顯示異常值時沒有 fallback資料驗證
-7. 發文內容可全空字串送出，加最小長度驗證
-8. 訂閱地點無去重、無上限，加限制細節
-9. 可點擊元素 cursor: auto 改成 cursor: pointer
-10. SiteHeader 的 aria-label 硬編碼，補進 i18n
-噁男問題
+## 📋 上線前檢查清單（建議依序執行）
+
+### 1. 功能與流程（手動走一遍）
+
+1. v 未登入狀態：瀏覽首頁、地圖、About；需登入的功能有正確提示
+2. v 已登入狀態：發文 → 地圖可見 → 他人回覆 → 驗證問答 → 接受／拒絕 → 開啟聊天
+3. v 聊天：送訊息、列表顯示、結束聊天、到期提示
+4. v 刪文：一般刪除、有進行中聊天室時的二次確認
+5. v 自己不能回覆自己的貼文；驗證重試一次、永久關閉等狀態正確
+6. v 貼文 7 天到期、聊天室 7 天到期（含徽章提示）行為符合預期
+7. [ ] 語言切換（中／英／日）：主要頁面文案與 meta 正常
+8. v 手機版 + 桌面版：地圖 Bottom Sheet、詳情區、驗證區展開與捲動
+9. v Email：註冊驗證、重設密碼、回覆／配對通知信
+10.v About 聯絡表單（登入後送出）
+
+### 2. 安全（優先）
+
+11. [x] 完整審查 Firestore rules（posts / responses / chats / messages / users / notifications）— 見 `docs/FIRESTORE-SECURITY-AUDIT.md`，已強化 `firestore.rules`（需 deploy）
+12. [ ] 通知：其他用戶不可 update 別人的通知（建議僅允許 create）
+13. [x] ownedPosts：不可偽造 ownership；以 posts.authorUid 等欄位交叉驗證（見 `firestore.rules` `ownedPostsMatchesPost`）
+14. [x] responses：responder 不可竄改 status、attemptCount 等敏感欄位（見 `responderResponseUpdateValid`）
+15. [ ] `api/sendEmail`：僅登入可呼叫、必要欄位驗證、錯誤不洩漏內部資訊
+16. [x] 環境變數（Firebase、Resend、CONTACT_EMAIL 等）僅在 Vercel／本機 env，未 commit 進 git — `.env.example`、`check:secrets`、見 `docs/PRE-LAUNCH-16-19.md`
+17. [x] 管理員：`isAdmin` 僅少數帳號；`/admin` 一般使用者無法進入 — rules + `Admin.jsx` 閘道
+18. [x] 檢舉：提交有寫入、管理後台可檢視與標記處理 — Map/Chat create、`Admin` resolve
+19. [x] 停權帳號無法登入／發文 — `userBan.js`、`AuthContext`、rules `isNotBanned()`
+
+### 3. 資料與驗證
+
+20. [x] 發文／回覆：最小長度、禁止全空白或僅空白字元 — `textValidation.js`
+21. [x] 動機與異常欄位：顯示有合理 fallback — `postMotivation.js` `getMotivationLabel`
+22. [x] 註冊 displayName 寫入無時序競態問題 — `Login` setDoc + `AuthContext` 不覆寫既有名稱
+23. [x] Map 驗證狀態以即時監聽同步 — `onSnapshot` + `mapVerifyResponse.js`
+
+### 4. 效能與 SEO
+
+24. [x] `npm run build` 無錯誤；主要 chunk 大小可接受 — 見 `docs/BUILD-PERFORMANCE.md`，leaflet 獨立拆包
+25. [x] 各頁 title、description、canonical 正確（含首頁、About、地圖、發文）— `useDocumentMeta` + `meta.*` i18n
+26. [x] robots.txt、sitemap（若有）路徑可開啟 — `public/robots.txt`、`public/sitemap.xml`
+27. [x] 圖片 WebP、lazy load 正常；地圖頁不拖垮首頁載入 — lazy 路由 + leaflet 不預載首頁
+
+### 5. 法律與信任
+
+28. [x] 隱私權政策（資料保存 7 天、聊天刪除等與 About 敘述一致）— `about.privacy.lead1–6`
+29. [x] 使用條款 — `about.terms.*` 區塊 + 頁尾連結
+30. [x] 聯絡方式、檢舉管道在站內可找到 — 頁尾導覽 + `about.trust.*`
+31. [x] Analytics（Vercel Web Analytics）— `about.privacy.lead5` + `main.jsx`
+
+### 6. 營運與監控
+
+32. [x] Vercel Production 指向正確 commit；`www.findsomeone.co` 可開 — 線上 200 + apex redirect；見 `docs/OPS-32-36.md`（Dashboard 對 commit）
+33. [x] Firebase：Authentication 已授權網域、Email 範本、Firestore indexes — 清單與 `npm run deploy:firestore:indexes` 見 `docs/OPS-32-36.md`
+34. [x] Firestore rules — `npm run deploy:firestore:rules`（`firebase-tools`）；部署後 Console 驗證見同上
+35. [x] （可選）Sentry — **未啟用**（刻意略過）；日後接入步驟見 `docs/OPS-32-36.md` §35
+36. [x] 帳密備份範本 — `docs/CREDENTIALS-BACKUP.md`（填寫存密碼庫，勿 commit）
+
+### 7. 體驗、無障礙與濫用
+
+37. [x] 可點擊元素 `cursor: pointer` — 全域 + Map/Account/Chat 修正；見 `docs/UX-A11Y-37-40.md`
+38. [x] aria-label i18n、`:focus-visible`、聊天 `chat.menuAria` / `chat.sendAria` — 見同上
+39. [x] 行動版字級下限與 16px 表單（防 iOS 縮放）— 見同上
+40. [x] 檢舉（Map/Chat/Admin）+ 管理員停權／解除（`Admin.jsx`）— 手動驗證步驟見同上
+
+### 8. 上線當天 Smoke Test（約 5 分鐘）
+
+41. [ ] 無痕視窗開 https://www.findsomeone.co
+42. [ ] 註冊或登入 → 發一篇測試文 → 地圖看得到
+43. [ ] 第二帳號回覆 → 貼主收到通知（若已開 email）
+44. [ ] 配對後聊天可傳訊息
+45. [ ] About 聯絡表單可送出
 
 ## 🔗 連結
 - Vercel：https://findsomeone.vercel.app/

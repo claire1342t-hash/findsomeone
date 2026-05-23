@@ -19,33 +19,29 @@ function App() {
       id: "map",
       titleKey: "feature.map.title",
       descKey: "feature.map.desc",
-      defaultImage: illustration("map-1"),
-      hoverImage: illustration("map-2"),
+      image: illustration("map-1"),
     },
     {
       id: "write",
       titleKey: "feature.write.title",
       descKey: "feature.write.desc",
-      defaultImage: illustration("boy-1"),
-      hoverImage: illustration("boy-2"),
+      image: illustration("boy-1"),
     },
     {
       id: "subscribe",
       titleKey: "feature.sub.title",
       descKey: "feature.sub.desc",
-      defaultImage: illustration("phone-1"),
-      hoverImage: illustration("phone-2"),
+      image: illustration("phone-1"),
     },
     {
       id: "chat",
       titleKey: "feature.chat.title",
       descKey: "feature.chat.desc",
-      defaultImage: illustration("Chat-1"),
-      hoverImage: illustration("Chat-2"),
+      image: illustration("Chat-1"),
     },
   ];
-  const buttonDefault = illustration("button_1");
-  const buttonActive = illustration("button_2");
+  const postButtonDefault = illustration("button_1");
+  const postButtonActive = illustration("button_2");
 
   return (
     <div className="home-page app-shell">
@@ -60,7 +56,7 @@ function App() {
         <section className="feature-grid" aria-label={t("meta.featureGridAria")}>
           {featureCards.map((card) => (
             <article className="feature-card feature-card--illustration" key={card.id}>
-              <FeatureCardImages defaultImage={card.defaultImage} hoverImage={card.hoverImage} />
+              <FeatureCardImages image={card.image} />
               <h2>{t(card.titleKey)}</h2>
               <p>{t(card.descKey)}</p>
             </article>
@@ -69,14 +65,14 @@ function App() {
         <section className="home-post-cta" aria-label={t("hero.postCta")}>
           <Link className="hero-image-button" to="/post" aria-label={t("hero.postCta")}>
             <ResponsiveImg
-              source={buttonDefault}
+              source={postButtonDefault}
               layout="button"
               className="hero-button-image default"
               alt={t("hero.postCta")}
               loading="lazy"
             />
             <ResponsiveImg
-              source={buttonActive}
+              source={postButtonActive}
               layout="button"
               className="hero-button-image active"
               alt=""

@@ -9,6 +9,10 @@
     "images:webp": "node scripts/convert-images-to-webp.mjs",
     "images:optimize": "node scripts/optimize-images.mjs",
     "lint": "eslint .",
+    "check:secrets": "sh scripts/check-no-secrets-in-git.sh",
+    "deploy:firestore:rules": "firebase deploy --only firestore:rules --project findsomeone-35c7f",
+    "deploy:firestore:indexes": "firebase deploy --only firestore:indexes --project findsomeone-35c7f",
+    "deploy:firestore": "firebase deploy --only firestore --project findsomeone-35c7f",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -34,6 +38,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "firebase-tools": "^14.12.0",
     "globals": "^17.5.0",
     "sharp": "^0.34.5",
     "vite": "^8.0.9"

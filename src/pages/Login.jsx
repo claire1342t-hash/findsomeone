@@ -8,7 +8,7 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
 import { getEmailVerificationActionSettings } from "../utils/authEmailAction.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
@@ -89,6 +89,16 @@ function Login() {
         const cred = await createUserWithEmailAndPassword(auth, emailNorm, password);
         const name = displayName.trim() || emailNorm.split("@")[0] || "User";
         await updateProfile(cred.user, { displayName: name });
+        const db = await getDb();
+        await setDoc(
+          doc(db, "users", cred.user.uid),
+          {
+            email: emailNorm,
+            displayName: name,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
         try {
           const action = getEmailVerificationActionSettings();
           if (action) {

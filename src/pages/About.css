@@ -44,6 +44,10 @@
   line-height: 1.2;
 }
 
+.about-anchor-target {
+  scroll-margin-top: 96px;
+}
+
 .about-feature-grid {
   display: flex;
   flex-direction: column;
@@ -186,9 +190,14 @@
 
 .about-input:focus,
 .about-textarea:focus {
-  outline: none;
   border-color: #a8a8a8;
   box-shadow: 0 0 0 3px rgba(31, 31, 33, 0.08);
+}
+
+.about-input:focus-visible,
+.about-textarea:focus-visible {
+  outline: 2px solid #2e4e9d;
+  outline-offset: 1px;
 }
 
 .about-input:disabled,

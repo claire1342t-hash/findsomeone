@@ -19,6 +19,8 @@ import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { deleteChatCascade } from "../utils/postLifecycle.js";
+import { ensureUserNotBanned } from "../utils/userBan.js";
+import { beginMatchCelebration } from "../utils/matchCelebration.js";
 import {
   DEFAULT_REPORT_REASON,
   isOtherReportReason,
@@ -27,6 +29,14 @@ import {
 import "./Chat.css";
 
 const TIME_GROUP_MS = 3 * 60 * 1000;
+const SYSTEM_MSG_PARTNER_ENDED = "partnerEnded";
+
+function systemMessageText(msg, t) {
+  if (msg.text === SYSTEM_MSG_PARTNER_ENDED) {
+    return t("chat.system.partnerEnded");
+  }
+  return msg.text;
+}
 
 function toMillis(value) {
   return value?.toDate?.()?.getTime?.() ?? null;
@@ -51,6 +61,7 @@ export default function ChatPage() {
   const [reportSubmittedForChat, setReportSubmittedForChat] = useState(false);
   const messagesBottomRef = useRef(null);
   const inputRef = useRef(null);
+  const celebrationCancelRef = useRef(null);
 
   const senderRole = useMemo(() => {
     if (!user || !chat) return null;
@@ -109,11 +120,35 @@ export default function ChatPage() {
     messagesBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, chatId]);
 
+  useEffect(() => {
+    if (!user || !chat || !chatId) return undefined;
+    if (user.uid !== chat.responderUid) return undefined;
+
+    const storageKey = `celebrated_${chatId}`;
+    if (localStorage.getItem(storageKey)) return undefined;
+
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch (err) {
+      console.error("[Chat] celebration localStorage failed", err);
+    }
+
+    celebrationCancelRef.current?.cancel();
+    const { cancel } = beginMatchCelebration();
+    celebrationCancelRef.current = cancel;
+
+    return () => {
+      celebrationCancelRef.current?.cancel();
+      celebrationCancelRef.current = null;
+    };
+  }, [user, chat, chatId]);
+
   const sendMessage = async () => {
     if (!db || !chatId || !senderRole) return;
     const trimmed = text.trim();
     if (!trimmed) return;
     try {
+      await ensureUserNotBanned(db, user.uid);
       await addDoc(collection(db, "chats", chatId, "messages"), {
         senderRole,
         text: trimmed,
@@ -140,8 +175,16 @@ export default function ChatPage() {
 
   const endChat = async () => {
     const ok = window.confirm(t("chat.endWarning"));
-    if (!ok || !chatId) return;
+    if (!ok || !chatId || !db) return;
     try {
+      await addDoc(collection(db, "chats", chatId, "messages"), {
+        senderRole: "system",
+        text: SYSTEM_MSG_PARTNER_ENDED,
+        createdAt: serverTimestamp(),
+      });
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 1000);
+      });
       await deleteChatCascade(chatId);
       navigate("/profile", { replace: true });
     } catch (err) {
@@ -225,7 +268,14 @@ export default function ChatPage() {
             <header className="chat-card__header">
               <h1>{partnerName || t("chat.anonymousPartner")}</h1>
               <div className="chat-menu-wrap">
-                <button type="button" className="chat-menu-btn" onClick={() => setMenuOpen((v) => !v)}>
+                <button
+                  type="button"
+                  className="chat-menu-btn"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label={t("chat.menuAria")}
+                  aria-expanded={menuOpen}
+                  aria-haspopup="true"
+                >
                   ⋯
                 </button>
                 {menuOpen ? (
@@ -248,12 +298,20 @@ export default function ChatPage() {
 
             <div className="chat-messages">
               {messages.map((msg, index) => {
+                if (msg.senderRole === "system") {
+                  return (
+                    <p key={msg.id} className="chat-msg-system">
+                      {systemMessageText(msg, t)}
+                    </p>
+                  );
+                }
                 const mine = msg.senderRole === senderRole;
                 const next = messages[index + 1];
                 const currentMs = toMillis(msg.createdAt);
                 const nextMs = toMillis(next?.createdAt);
                 const isSameSenderBurst =
                   !!next &&
+                  next.senderRole !== "system" &&
                   next.senderRole === msg.senderRole &&
                   currentMs != null &&
                   nextMs != null &&
@@ -277,7 +335,7 @@ export default function ChatPage() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder={t("chat.inputPlaceholder")}
               />
-              <button type="button" onClick={sendMessage}>
+              <button type="button" onClick={sendMessage} aria-label={t("chat.sendAria")}>
                 ➤
               </button>
             </footer>

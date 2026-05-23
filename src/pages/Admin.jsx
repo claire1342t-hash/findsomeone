@@ -235,6 +235,29 @@ export default function AdminPage() {
     }
   };
 
+  const handleToggleUserBanned = async (targetUser) => {
+    if (!targetUser?.id) return;
+    if (targetUser.id === user.uid) {
+      setError(t("admin.error.banSelf"));
+      return;
+    }
+    const nextBanned = targetUser.isBanned !== true;
+    const confirmKey = nextBanned ? "admin.confirm.ban" : "admin.confirm.unban";
+    if (!window.confirm(t(confirmKey))) return;
+
+    const key = `ban-${targetUser.id}`;
+    setBusy(key, true);
+    setError("");
+    try {
+      await updateDoc(doc(db, "users", targetUser.id), { isBanned: nextBanned });
+    } catch (e) {
+      console.error("toggle ban", e);
+      setError(t("admin.error.ban"));
+    } finally {
+      setBusy(key, false);
+    }
+  };
+
   const handleUpdateReportStatus = async (reportId, status) => {
     if (!db) return;
     const key = `report-${reportId}-${status}`;
@@ -350,16 +373,34 @@ export default function AdminPage() {
                   <th>{t("admin.table.email")}</th>
                   <th>{t("admin.table.joinDate")}</th>
                   <th>{t("admin.table.postCount")}</th>
+                  <th>{t("admin.table.status")}</th>
+                  <th>{t("admin.table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {activeUsers.map((item) => (
+                {activeUsers.map((item) => {
+                  const isBanned = item.isBanned === true;
+                  const banBusy = !!actionBusy[`ban-${item.id}`];
+                  const isSelf = item.id === user.uid;
+                  return (
                   <tr key={item.id}>
                     <td>{item.email || "—"}</td>
                     <td>{formatDate(item.createdAt, language)}</td>
                     <td>{item._postCount}</td>
+                    <td>{isBanned ? t("admin.user.banned") : t("admin.user.active")}</td>
+                    <td className="admin-actions-cell">
+                      <button
+                        type="button"
+                        className={isBanned ? "admin-user-unban-btn" : "admin-user-ban-btn"}
+                        onClick={() => handleToggleUserBanned(item)}
+                        disabled={isSelf || banBusy}
+                      >
+                        {isBanned ? t("admin.user.unban") : t("admin.user.ban")}
+                      </button>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

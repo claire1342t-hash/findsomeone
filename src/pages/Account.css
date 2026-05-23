@@ -30,7 +30,7 @@
   font-size: 15px;
   font-weight: 600;
   font-family: "Noto Sans TC", sans-serif;
-  cursor: auto;
+  cursor: pointer;
   border: 1px solid transparent;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
 }
@@ -161,7 +161,7 @@
   padding: 0;
   font: inherit;
   color: #2e4e9d;
-  cursor: auto;
+  cursor: pointer;
   text-decoration: underline;
 }
 
@@ -274,7 +274,7 @@
   border: 0;
   background: transparent;
   border-radius: 50%;
-  cursor: auto;
+  cursor: pointer;
   flex-shrink: 0;
 }
 
@@ -313,7 +313,7 @@
   color: var(--muted);
   font-size: 22px;
   line-height: 1;
-  cursor: auto;
+  cursor: pointer;
   padding: 4px 8px;
   border-radius: 8px;
 }
@@ -603,7 +603,7 @@
   padding: 0;
   display: grid;
   place-items: center;
-  cursor: auto;
+  cursor: pointer;
   justify-self: center;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
@@ -644,7 +644,7 @@
   inset: 0;
   border: 0;
   background: rgba(0, 0, 0, 0.42);
-  cursor: auto;
+  cursor: pointer;
 }
 
 .profile-picture-modal__panel {

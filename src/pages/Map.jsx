@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster";
@@ -29,6 +29,12 @@ import { formatRelativeCalendarDay } from "../utils/relativeTime.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { upsertRepliedPostIndex } from "../utils/repliedPostsIndex.js";
 import { appearanceTitleFromDescription } from "../utils/postAppearance.js";
+import { formatMapLocationLabel } from "../utils/mapLocationLabel.js";
+import { ensureUserNotBanned } from "../utils/userBan.js";
+import { normalizeText, validateMapVerifyAnswers } from "../utils/textValidation.js";
+import { getMotivationLabel } from "../utils/postMotivation.js";
+import { mapVerifyStateFromResponse } from "../utils/mapVerifyResponse.js";
+import { useReverseGeocode } from "../hooks/useReverseGeocode.js";
 import { useDocumentMeta } from "../hooks/useDocumentMeta.js";
 import {
   DEFAULT_REPORT_REASON,
@@ -40,6 +46,75 @@ import "./Map.css";
 import pingIconSrc from "../assets/illustrations/ping.webp";
 
 const TAIPEI_CENTER = [25.033, 121.5654];
+const SELECTED_POST_ZOOM = 16;
+const MOBILE_MAP_DETAIL_MAX_WIDTH = 900;
+/** Detail panel uses 45% of the viewport; map stays in the remaining 55%. */
+const MAP_DETAIL_PANEL_FRACTION = 0.45;
+
+function getMapDetailPanOffset(map) {
+  const { x, y } = map.getSize();
+  const mapVisibleFraction = 1 - MAP_DETAIL_PANEL_FRACTION;
+  const offsetFromViewportCenter = 0.5 - mapVisibleFraction / 2;
+  if (typeof window !== "undefined" && window.innerWidth <= MOBILE_MAP_DETAIL_MAX_WIDTH) {
+    return [0, Math.round(y * offsetFromViewportCenter)];
+  }
+  return [Math.round(x * offsetFromViewportCenter), 0];
+}
+
+const selectedPostPinIcon = new L.Icon({
+  iconUrl: pingIconSrc,
+  iconRetinaUrl: pingIconSrc,
+  iconSize: [52, 52],
+  iconAnchor: [26, 48],
+  popupAnchor: [0, -36],
+  className: "map-selected-pin",
+});
+
+function SelectedPostMapFocus({ post }) {
+  const map = useMap();
+  const lat = post?.location?.lat;
+  const lng = post?.location?.lng;
+  const postId = post?.id;
+
+  useEffect(() => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    let cancelled = false;
+    const zoom = Math.max(map.getZoom(), SELECTED_POST_ZOOM);
+
+    const panToVisibleMapCenter = () => {
+      if (cancelled) return;
+      const [dx, dy] = getMapDetailPanOffset(map);
+      if (dx === 0 && dy === 0) return;
+      map.panBy([dx, dy], { animate: true, duration: 0.25 });
+    };
+
+    const focus = (animate = true) => {
+      if (cancelled) return;
+      map.off("moveend", panToVisibleMapCenter);
+      if (animate) {
+        map.flyTo([lat, lng], zoom, { duration: 0.8 });
+        map.once("moveend", panToVisibleMapCenter);
+      } else {
+        map.setView([lat, lng], zoom, { animate: false });
+        panToVisibleMapCenter();
+      }
+    };
+
+    focus(true);
+
+    const onResize = () => focus(false);
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelled = true;
+      map.off("moveend", panToVisibleMapCenter);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [map, lat, lng, postId]);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return <Marker position={[lat, lng]} icon={selectedPostPinIcon} zIndexOffset={1000} />;
+}
 
 function formatDate(createdAt, language, t) {
   if (!createdAt?.toDate) return "—";
@@ -53,13 +128,6 @@ function formatDate(createdAt, language, t) {
 
 function createdAtMs(createdAt) {
   return createdAt?.toDate ? createdAt.toDate().getTime() : 0;
-}
-
-function getMotivationText(post, t) {
-  if (post?.motivation === "custom") {
-    return post?.motivationCustom || t("post.motivation.custom");
-  }
-  return t(`post.motivation.${post?.motivation || "know"}`);
 }
 
 function ClusterLayer({ posts, onClusterPick }) {
@@ -154,6 +222,17 @@ function MapPage() {
   );
 
   const selectedPost = sortedClusterPosts.find((item) => item.id === selectedPostId) ?? null;
+
+  const postsForGeocode = useMemo(() => {
+    const list = [...sortedClusterPosts];
+    if (selectedPost && !list.some((p) => p.id === selectedPost.id)) {
+      list.push(selectedPost);
+    }
+    return list;
+  }, [sortedClusterPosts, selectedPost]);
+
+  const getReverseAddress = useReverseGeocode(postsForGeocode, language);
+
   const selectedPostExpiryBadge = useMemo(
     () => (selectedPost ? getPostExpiryBadge(selectedPost.createdAt, new Date(), selectedPost.isPinned === true) : null),
     [selectedPost],
@@ -230,6 +309,12 @@ function MapPage() {
     resetReportState();
   };
 
+  const goBackToList = () => {
+    setSelectedPostId(null);
+    resetVerificationState();
+    resetReportState();
+  };
+
   const submitPostReport = async () => {
     if (!db || !selectedPost) return;
     if (!user) {
@@ -297,45 +382,23 @@ function MapPage() {
   };
 
   useEffect(() => {
-    if (!db) return undefined;
-    let active = true;
-    async function inspectExistingResponse() {
-      if (!verifyOpen || !selectedPost || !user) return;
-      try {
-        const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
-        const snap = await getDoc(responseRef);
-        if (!active) return;
-        if (!snap.exists()) {
-          setVerifySubmitted(false);
-          setVerifyLocked(false);
-          setPreviousRejectedOnce(false);
-          return;
-        }
-        const data = snap.data();
-        const status = String(data?.status || "");
-        const attemptCount = Number(data?.attemptCount || 1);
-        if (status === "rejected" && attemptCount >= 2) {
-          if (!active) return;
-          setVerifyLocked(true);
-          return;
-        }
-        if (status === "rejected" && attemptCount === 1) {
-          if (!active) return;
-          setVerifySubmitted(false);
-          setPreviousRejectedOnce(true);
-          return;
-        }
-        if (!active) return;
-        // "已回覆" only when current user has their own response doc under this post
-        setVerifySubmitted(snap.exists());
-      } catch (err) {
-        console.error(err);
-      }
+    if (!db || !verifyOpen || !selectedPost || !user) {
+      setVerifySubmitted(false);
+      setVerifyLocked(false);
+      setPreviousRejectedOnce(false);
+      return undefined;
     }
-    inspectExistingResponse();
-    return () => {
-      active = false;
-    };
+    const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
+    return onSnapshot(
+      responseRef,
+      (snap) => {
+        const next = mapVerifyStateFromResponse(snap);
+        setVerifySubmitted(next.verifySubmitted);
+        setVerifyLocked(next.verifyLocked);
+        setPreviousRejectedOnce(next.previousRejectedOnce);
+      },
+      (err) => console.error("[Map] response snapshot", err),
+    );
   }, [verifyOpen, selectedPost, user, db]);
 
   const submitVerification = async () => {
@@ -344,15 +407,17 @@ function MapPage() {
       setVerifyError(t("map.verifyOwnPost"));
       return;
     }
-    const trimmed1 = answer1.trim();
-    const trimmed2 = answer2.trim();
-    if (!trimmed1 || !trimmed2) {
-      setVerifyError(t("map.verifyAnswerRequired"));
+    const trimmed1 = normalizeText(answer1);
+    const trimmed2 = normalizeText(answer2);
+    const answerValidationKey = validateMapVerifyAnswers(trimmed1, trimmed2);
+    if (answerValidationKey) {
+      setVerifyError(t(answerValidationKey));
       return;
     }
     setVerifyBusy(true);
     setVerifyError("");
     try {
+      await ensureUserNotBanned(db, user.uid);
       const responseRef = doc(db, "posts", selectedPost.id, "responses", user.uid);
       const existingSnap = await getDoc(responseRef);
       const existing = existingSnap.exists() ? existingSnap.data() : null;
@@ -399,7 +464,7 @@ function MapPage() {
       setPreviousRejectedOnce(false);
     } catch (err) {
       console.error(err);
-      setVerifyError(err.message || String(err));
+      setVerifyError(err?.code === "app/user-banned" ? t("login.errorBanned") : err.message || String(err));
     } finally {
       setVerifyBusy(false);
     }
@@ -422,6 +487,7 @@ function MapPage() {
               resetVerificationState();
             }}
           />
+          {selectedPost ? <SelectedPostMapFocus post={selectedPost} /> : null}
         </MapContainer>
 
         <section
@@ -463,7 +529,9 @@ function MapPage() {
                           ) : null}
                         </div>
                         <p className="map-post-card__meta">
-                          <span>{post.locationDescription || t("map.locationFallback")}</span>
+                          <span className="map-post-card__location">
+                            {formatMapLocationLabel(post, getReverseAddress, t)}
+                          </span>
                           <span>{formatRelativeCalendarDay(post.createdAt, language)}</span>
                         </p>
                       </button>
@@ -480,6 +548,9 @@ function MapPage() {
               className={`map-sheet__right-wrap ${rightShowFade ? "map-sheet__right-wrap--bottom-fade" : ""}`}
             >
             <aside className="map-sheet__right" ref={rightScrollRef}>
+              <button type="button" className="map-detail__back" onClick={goBackToList}>
+                ← {t("map.backToList")}
+              </button>
               <h2 className="map-detail__title">
                 <span className="map-detail__title-text">{appearanceTitleFromDescription(selectedPost.description, t)}</span>
                 {selectedPostExpiryBadge ? (
@@ -493,20 +564,22 @@ function MapPage() {
               <div className="map-detail__title-divider" aria-hidden="true" />
               <div className="map-detail__section map-detail__section--plain">
                 <p className="map-detail__story-label">{t("map.storyLabel")}</p>
-                <p className="map-detail__text">{selectedPost.description?.story || t("map.postFallbackStory")}</p>
+                <p className="map-detail__text">
+                  {normalizeText(selectedPost.description?.story) || t("map.postFallbackStory")}
+                </p>
               </div>
               <div className="map-detail__short-divider" aria-hidden="true" />
               <div className="map-detail__section map-detail__section--plain">
                 <p className="map-detail__inline-row">
                   <strong>{t("map.motivationLabel")}：</strong>
-                  <span>{getMotivationText(selectedPost, t)}</span>
+                  <span>{getMotivationLabel(selectedPost, t)}</span>
                 </p>
               </div>
               <div className="map-detail__short-divider" aria-hidden="true" />
               <div className="map-detail__section map-detail__section--plain">
                 <p className="map-detail__sub">
                   <strong>{t("map.locationLabel")}：</strong>
-                  {selectedPost.locationDescription || t("map.locationFallback")}
+                  {formatMapLocationLabel(selectedPost, getReverseAddress, t)}
                 </p>
                 <p className="map-detail__sub">
                   <strong>{t("map.dateLabel")}：</strong>
