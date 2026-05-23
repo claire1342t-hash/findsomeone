@@ -137,11 +137,7 @@ function About() {
           </h2>
           <div className="about-feature-grid">
             {MECHANISM_FEATURE_IDS.map((id) => (
-              <article
-                className="about-feature-card"
-                key={id}
-                id={id === "report" ? "about-feature-report" : undefined}
-              >
+              <article className="about-feature-card" key={id}>
                 <span className="about-feature-icon" aria-hidden>
                   {FEATURE_ICONS[id]}
                 </span>
@@ -160,14 +156,6 @@ function About() {
             <p className="about-author-name">Claire</p>
             <p className="about-author-bio">{t("about.author.bio")}</p>
           </article>
-        </section>
-
-        <section className="about-section about-trust" aria-labelledby="about-trust-title">
-          <h2 id="about-trust-title" className="about-section-title about-anchor-target">
-            {t("about.trust.title")}
-          </h2>
-          <p className="about-lead">{t("about.trust.report")}</p>
-          <p className="about-lead">{t("about.trust.contact")}</p>
         </section>
 
         <section className="about-section about-contact" aria-labelledby="about-contact-title">

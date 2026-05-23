@@ -234,7 +234,7 @@ export const messages = {
     "about.philosophy.lead1": "你是否曾在某個瞬間，看見一個讓你心動的陌生人，卻因為太緊張而最後什麼都沒說。",
     "about.philosophy.lead2": "回家之後一直想著「如果當時開口就好了」。",
     "about.philosophy.lead3": "Findsomeone 就是為了那個「如果」而存在的。",
-    "about.privacy.title": "關於隱私與資料",
+    "about.privacy.title": "隱私與資料",
     "about.privacy.lead1": "Findsomeone 重視每位用戶的隱私與資料安全。",
     "about.privacy.lead2":
       "雖然本平台採用匿名機制，我們仍需要您以 email 登入，目的是在您的貼文或回覆有新動態時，即時寄送通知至您的信箱，讓您在離開網站後也不會錯過重要消息。",
@@ -256,10 +256,6 @@ export const messages = {
     "about.terms.lead4":
       "我們可因違規、濫用或法律要求，限制帳號、移除內容或停權；嚴重違規者得永久無法使用。",
     "about.terms.lead5": "條款如有更新，將於本頁公布；繼續使用即視為同意修訂內容。",
-    "about.trust.title": "聯絡與檢舉",
-    "about.trust.report":
-      "檢舉管道：地圖上開啟貼文詳情後，或聊天室右上角選單中的「檢舉」。送出後由管理員審核處理。",
-    "about.trust.contact": "一般問題、合作或隱私相關詢問，請使用本頁下方聯絡表單（須先登入）。",
     "about.mechanism.title": "網頁機制",
     "about.feature.avatar.title": "自選頭貼",
     "about.feature.avatar.desc": "登入後可以在個人頁面選擇你喜歡的頭貼",
@@ -374,12 +370,6 @@ export const messages = {
     "admin.report.unavailablePost": "（貼文已不存在）",
     "admin.report.unavailableUser": "（用戶已不存在）",
     "admin.report.resolved": "已處理",
-    "footer.navAria": "頁尾連結",
-    "footer.about": "關於",
-    "footer.privacy": "隱私權",
-    "footer.terms": "使用條款",
-    "footer.contact": "聯絡",
-    "footer.report": "檢舉說明",
     "footer.copyright": "Copyright © 2026 Findsomeone. All rights reserved.",
   },
   en: {
@@ -618,7 +608,7 @@ export const messages = {
       "Have you ever seen a stranger who caught your eye, but you were too nervous to say anything?",
     "about.philosophy.lead2": 'Later you kept thinking, "I wish I had spoken up."',
     "about.philosophy.lead3": "Findsomeone exists for that “what if.”",
-    "about.privacy.title": "About privacy & data",
+    "about.privacy.title": "Privacy & data",
     "about.privacy.lead1": "Findsomeone values every user's privacy and data security.",
     "about.privacy.lead2":
       "Although the platform uses anonymous matching, we require email sign-in so we can notify you when there is activity on your posts or replies—even after you leave the site.",
@@ -640,10 +630,6 @@ export const messages = {
     "about.terms.lead4":
       "We may restrict accounts, remove content, or ban users for abuse or legal reasons, including permanent suspension for serious violations.",
     "about.terms.lead5": "We may update these terms on this page; continued use means you accept the revised terms.",
-    "about.trust.title": "Contact & reports",
-    "about.trust.report":
-      "To report: open a post on the map, or use Report in the chat room menu. Submissions are reviewed by admins.",
-    "about.trust.contact": "For questions, partnerships, or privacy inquiries, use the contact form below (sign-in required).",
     "about.mechanism.title": "Site features",
     "about.feature.avatar.title": "Choose your avatar",
     "about.feature.avatar.desc": "After signing in, pick an avatar you like on your profile page.",
@@ -760,12 +746,6 @@ export const messages = {
     "admin.report.unavailablePost": "(Post unavailable)",
     "admin.report.unavailableUser": "(User unavailable)",
     "admin.report.resolved": "Resolved",
-    "footer.navAria": "Footer links",
-    "footer.about": "About",
-    "footer.privacy": "Privacy",
-    "footer.terms": "Terms",
-    "footer.contact": "Contact",
-    "footer.report": "Reporting guide",
     "footer.copyright": "Copyright © 2026 Findsomeone. All rights reserved.",
   },
   ja: {
@@ -1003,7 +983,7 @@ export const messages = {
     "about.philosophy.lead1": "心が動いた見知らぬ人に出会ったのに、緊張して声をかけられなかったことはありませんか。",
     "about.philosophy.lead2": "家に帰ってから「あのとき声をかければよかった」と何度も思いました。",
     "about.philosophy.lead3": "Findsomeone は、その「もしも」のためのサービスです。",
-    "about.privacy.title": "プライバシーとデータについて",
+    "about.privacy.title": "プライバシーとデータ",
     "about.privacy.lead1": "Findsomeone はすべてのユーザーのプライバシーとデータの安全を重視しています。",
     "about.privacy.lead2":
       "本サービスは匿名でのやり取りを基本としていますが、投稿や返信に新しい動きがあったときにメールでお知らせするため、email でのログインが必要です。サイトを離れたあとも大切なお知らせを見逃しにくくします。",
@@ -1025,10 +1005,6 @@ export const messages = {
     "about.terms.lead4":
       "違反・悪用・法令上の理由により、アカウント制限、コンテンツ削除、利用停止（永久停止を含む）を行う場合があります。",
     "about.terms.lead5": "規約は本ページで更新することがあります。継続利用により改定に同意したものとみなします。",
-    "about.trust.title": "お問い合わせと通報",
-    "about.trust.report":
-      "通報方法：地図で投稿の詳細を開く、またはチャットルームのメニューから「通報」。管理者が審査します。",
-    "about.trust.contact": "一般的な質問・協業・プライバシーに関するお問い合わせは、下のフォームから（ログインが必要です）。",
     "about.mechanism.title": "サイトの機能",
     "about.feature.avatar.title": "アバター選択",
     "about.feature.avatar.desc": "ログイン後、プロフィールページで好きなアバターを選べます。",
@@ -1145,12 +1121,6 @@ export const messages = {
     "admin.report.unavailablePost": "（投稿は利用不可）",
     "admin.report.unavailableUser": "（ユーザーは利用不可）",
     "admin.report.resolved": "処理済み",
-    "footer.navAria": "フッターリンク",
-    "footer.about": "概要",
-    "footer.privacy": "プライバシー",
-    "footer.terms": "利用規約",
-    "footer.contact": "お問い合わせ",
-    "footer.report": "通報の案内",
     "footer.copyright": "Copyright © 2026 Findsomeone. All rights reserved.",
   },
 }
