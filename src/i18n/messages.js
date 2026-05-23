@@ -247,15 +247,25 @@ export const messages = {
     "about.privacy.lead6":
       "若您透過檢舉功能回報貼文或聊天室，我們會保存檢舉原因與相關識別資訊供管理員審核，處理完成後僅管理員可更新狀態。",
     "about.terms.title": "使用條款",
-    "about.terms.lead1":
-      "使用 Findsomeone 即表示您同意以善意、合法的方式使用本服務，不得發布騷擾、仇恨、色情、詐騙、侵犯他人隱私或違反法律之內容。",
-    "about.terms.lead2":
-      "您須對自己發布的貼文、回覆與聊天訊息負責。匿名暱稱不代表可免除法律責任；若發現不當內容，請使用檢舉功能。",
-    "about.terms.lead3":
-      "本服務依「現狀」提供，我們不保證一定能配對成功、通知送達或服務不中斷，並保留調整功能與規則之權利。",
-    "about.terms.lead4":
-      "我們可因違規、濫用或法律要求，限制帳號、移除內容或停權；嚴重違規者得永久無法使用。",
-    "about.terms.lead5": "條款如有更新，將於本頁公布；繼續使用即視為同意修訂內容。",
+    "about.terms.intro": "歡迎使用 Findsomeone。使用本平台即表示您同意以下條款。",
+    "about.terms.account.title": "帳號責任",
+    "about.terms.account.body":
+      "您須對自己的帳號及所有活動負責。請勿將帳號分享給他人或冒充其他用戶。匿名暱稱不代表可免除法律責任。",
+    "about.terms.content.title": "內容規範",
+    "about.terms.content.body":
+      "發布貼文時，請確保內容真實且出於善意。嚴禁發布騷擾、歧視、色情、威脅、詐騙或侵犯他人隱私之內容。本平台每位用戶每天最多發布 2 篇貼文。",
+    "about.terms.privacyRespect.title": "隱私尊重",
+    "about.terms.privacyRespect.body":
+      "請尊重其他用戶的隱私。未經對方同意，不得截圖或散布聊天室內容。",
+    "about.terms.platform.title": "平台限制",
+    "about.terms.platform.body":
+      "Findsomeone 不對用戶之間的互動結果負責。本平台以「現狀」提供服務，不保證配對成功、通知送達或服務不中斷，並保留調整功能與規則之權利。",
+    "about.terms.management.title": "帳號管理",
+    "about.terms.management.body":
+      "我們可因違規、濫用或法律要求，限制帳號、移除內容或停權；嚴重違規者得永久無法使用本服務。",
+    "about.terms.updates.title": "條款更新",
+    "about.terms.updates.body": "條款如有更新，將於本頁公布；繼續使用即視為同意修訂內容。",
+    "about.terms.footer": "如有疑問，請透過頁面底部的聯絡表單與我們聯繫。",
     "about.mechanism.title": "網頁機制",
     "about.feature.avatar.title": "自選頭貼",
     "about.feature.avatar.desc": "登入後可以在個人頁面選擇你喜歡的頭貼",
@@ -621,15 +631,26 @@ export const messages = {
     "about.privacy.lead6":
       "If you report a post or chat, we store the reason and related identifiers for admin review. Only admins can update report status after review.",
     "about.terms.title": "Terms of use",
-    "about.terms.lead1":
-      "By using Findsomeone you agree to use the service lawfully and in good faith. Do not post harassment, hate speech, pornography, scams, privacy violations, or other illegal content.",
-    "about.terms.lead2":
-      "You are responsible for your posts, replies, and chat messages. Anonymous nicknames do not remove legal responsibility; use Report if you see abuse.",
-    "about.terms.lead3":
-      "The service is provided “as is.” We do not guarantee matches, email delivery, or uninterrupted operation, and may change features or rules.",
-    "about.terms.lead4":
-      "We may restrict accounts, remove content, or ban users for abuse or legal reasons, including permanent suspension for serious violations.",
-    "about.terms.lead5": "We may update these terms on this page; continued use means you accept the revised terms.",
+    "about.terms.intro": "Welcome to Findsomeone. By using this platform, you agree to the following terms.",
+    "about.terms.account.title": "Account responsibility",
+    "about.terms.account.body":
+      "You are responsible for your account and all activity on it. Do not share your account with others or impersonate another user. Anonymous nicknames do not remove legal responsibility.",
+    "about.terms.content.title": "Content guidelines",
+    "about.terms.content.body":
+      "When posting, ensure your content is truthful and posted in good faith. Harassment, discrimination, pornography, threats, scams, and privacy violations are prohibited. Each user may publish at most 2 posts per day on this platform.",
+    "about.terms.privacyRespect.title": "Respect for privacy",
+    "about.terms.privacyRespect.body":
+      "Respect other users’ privacy. Do not screenshot or share chat room content without the other person’s consent.",
+    "about.terms.platform.title": "Platform limitations",
+    "about.terms.platform.body":
+      "Findsomeone is not responsible for outcomes between users. The service is provided “as is.” We do not guarantee successful matches, notification delivery, or uninterrupted service, and may change features or rules.",
+    "about.terms.management.title": "Account management",
+    "about.terms.management.body":
+      "We may restrict accounts, remove content, or ban users for violations, abuse, or legal requirements; serious violations may result in permanent loss of access.",
+    "about.terms.updates.title": "Updates to these terms",
+    "about.terms.updates.body":
+      "If these terms are updated, we will publish the changes on this page; continued use means you accept the revised terms.",
+    "about.terms.footer": "If you have questions, contact us using the form at the bottom of this page.",
     "about.mechanism.title": "Site features",
     "about.feature.avatar.title": "Choose your avatar",
     "about.feature.avatar.desc": "After signing in, pick an avatar you like on your profile page.",
@@ -996,15 +1017,26 @@ export const messages = {
     "about.privacy.lead6":
       "投稿やチャットを通報した場合、管理者が審査するため理由と関連情報を保存します。処理後の状態更新は管理者のみが行えます。",
     "about.terms.title": "利用規約",
-    "about.terms.lead1":
-      "本サービスの利用により、法令に従い誠実に利用することに同意したものとみなします。嫌がらせ、ヘイト、違法な性的表現、詐欺、プライバシー侵害などの投稿は禁止です。",
-    "about.terms.lead2":
-      "投稿・返信・チャットの内容はご自身の責任です。匿名ニックネームでも法的責任は免れません。不適切な内容は通報機能をご利用ください。",
-    "about.terms.lead3":
-      "本サービスは現状有姿で提供されます。マッチングや通知の到達、継続的な稼働を保証しません。機能やルールは変更される場合があります。",
-    "about.terms.lead4":
-      "違反・悪用・法令上の理由により、アカウント制限、コンテンツ削除、利用停止（永久停止を含む）を行う場合があります。",
-    "about.terms.lead5": "規約は本ページで更新することがあります。継続利用により改定に同意したものとみなします。",
+    "about.terms.intro": "Findsomeone へようこそ。本プラットフォームを利用することで、以下の規約に同意したものとみなします。",
+    "about.terms.account.title": "アカウントの責任",
+    "about.terms.account.body":
+      "ご自身のアカウントおよびそのアカウント上のすべての活動について責任を負います。アカウントを他人と共有したり、他のユーザーになりすましたりしないでください。匿名ニックネームでも法的責任は免れません。",
+    "about.terms.content.title": "コンテンツ規範",
+    "about.terms.content.body":
+      "投稿する内容は真実で善意に基づくものにしてください。嫌がらせ、差別、ポルノ、脅迫、詐欺、プライバシー侵害などの投稿は禁止です。本プラットフォームでは、各ユーザーは1日最大2件まで投稿できます。",
+    "about.terms.privacyRespect.title": "プライバシーの尊重",
+    "about.terms.privacyRespect.body":
+      "他のユーザーのプライバシーを尊重してください。相手の同意なく、チャットルームの内容をスクリーンショットしたり共有したりしないでください。",
+    "about.terms.platform.title": "プラットフォームの制限",
+    "about.terms.platform.body":
+      "Findsomeone はユーザー間のやり取りの結果について責任を負いません。本サービスは現状有姿で提供され、マッチングの成功、通知の到達、サービスの中断がないことは保証しません。機能やルールを変更する権利を留保します。",
+    "about.terms.management.title": "アカウント管理",
+    "about.terms.management.body":
+      "違反、悪用、または法令上の理由により、アカウントの制限、コンテンツの削除、利用停止（永久停止を含む）を行う場合があります。",
+    "about.terms.updates.title": "規約の更新",
+    "about.terms.updates.body":
+      "規約を更新する場合は本ページで公表します。継続して利用することで、改定内容に同意したものとみなします。",
+    "about.terms.footer": "ご不明な点は、ページ下部のお問い合わせフォームからご連絡ください。",
     "about.mechanism.title": "サイトの機能",
     "about.feature.avatar.title": "アバター選択",
     "about.feature.avatar.desc": "ログイン後、プロフィールページで好きなアバターを選べます。",

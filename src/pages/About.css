@@ -48,6 +48,30 @@
   scroll-margin-top: 96px;
 }
 
+.about-terms-intro {
+  margin-top: 0;
+}
+
+.about-terms-item {
+  margin-top: 14px;
+}
+
+.about-terms-item:first-of-type {
+  margin-top: 18px;
+}
+
+.about-terms-subtitle {
+  font-family: "Noto Sans TC", sans-serif;
+  font-size: var(--about-body-size);
+  font-weight: 700;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+.about-terms-footer {
+  margin-top: 22px;
+}
+
 .about-feature-grid {
   display: flex;
   flex-direction: column;

@@ -10,6 +10,15 @@ import { useEmailDomainSuggestion } from "../hooks/useEmailDomainSuggestion.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import "./About.css";
 
+const TERMS_SECTION_IDS = [
+  "account",
+  "content",
+  "privacyRespect",
+  "platform",
+  "management",
+  "updates",
+];
+
 const MECHANISM_FEATURE_IDS = [
   "avatar",
   "view-replies",
@@ -124,11 +133,14 @@ function About() {
           <h2 id="about-terms-title" className="about-section-title about-anchor-target">
             {t("about.terms.title")}
           </h2>
-          <p className="about-lead">{t("about.terms.lead1")}</p>
-          <p className="about-lead">{t("about.terms.lead2")}</p>
-          <p className="about-lead">{t("about.terms.lead3")}</p>
-          <p className="about-lead">{t("about.terms.lead4")}</p>
-          <p className="about-lead">{t("about.terms.lead5")}</p>
+          <p className="about-lead about-terms-intro">{t("about.terms.intro")}</p>
+          {TERMS_SECTION_IDS.map((id) => (
+            <p className="about-lead about-terms-item" key={id}>
+              <span className="about-terms-subtitle">{t(`about.terms.${id}.title`)}</span>{" "}
+              {t(`about.terms.${id}.body`)}
+            </p>
+          ))}
+          <p className="about-lead about-terms-footer">{t("about.terms.footer")}</p>
         </section>
 
         <section className="about-section" aria-labelledby="about-mechanism-title">
