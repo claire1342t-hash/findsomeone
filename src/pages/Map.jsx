@@ -47,33 +47,25 @@ import pingIconSrc from "../assets/illustrations/ping.webp";
 
 const TAIPEI_CENTER = [25.033, 121.5654];
 const SELECTED_POST_ZOOM = 16;
-const MOBILE_MAP_LAYOUT_MAX_WIDTH = 730;
-const TABLET_MAP_LAYOUT_MAX_WIDTH = 900;
-/** Desktop: detail panel ~45% width on the right; map uses the left ~55%. */
-const DESKTOP_DETAIL_PANEL_FRACTION = 0.45;
-/** 731–900px: panel bottom 45% (top: 55dvh in CSS). */
-const TABLET_DETAIL_PANEL_FRACTION = 0.45;
-/** ≤730px: panel bottom 55% (top: 45dvh in CSS). */
-const MOBILE_DETAIL_PANEL_FRACTION = 0.55;
+const MOBILE_MAP_DETAIL_MAX_WIDTH = 900;
+/** Desktop: detail panel ~45% width on the right; map uses the left 55%. */
+const MAP_DETAIL_PANEL_FRACTION_DESKTOP = 0.45;
+/** Mobile (≤900px): sheet starts at top: 45dvh — bottom panel ~55%, map ~45% on top. */
+const MAP_DETAIL_PANEL_FRACTION_MOBILE = 0.55;
 
-function getMapDetailPanOffset(map, panelFraction) {
+function getMapDetailPanOffset(map) {
   const { x, y } = map.getSize();
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth <= MOBILE_MAP_DETAIL_MAX_WIDTH;
+  const panelFraction = isMobile
+    ? MAP_DETAIL_PANEL_FRACTION_MOBILE
+    : MAP_DETAIL_PANEL_FRACTION_DESKTOP;
   const mapVisibleFraction = 1 - panelFraction;
   const offsetFromViewportCenter = 0.5 - mapVisibleFraction / 2;
-  if (typeof window !== "undefined" && window.innerWidth <= TABLET_MAP_LAYOUT_MAX_WIDTH) {
+  if (isMobile) {
     return [0, Math.round(y * offsetFromViewportCenter)];
   }
   return [Math.round(x * offsetFromViewportCenter), 0];
-}
-
-function getMapDetailPanOffsetForViewport(map) {
-  if (typeof window !== "undefined" && window.innerWidth <= MOBILE_MAP_LAYOUT_MAX_WIDTH) {
-    return getMapDetailPanOffset(map, MOBILE_DETAIL_PANEL_FRACTION);
-  }
-  if (typeof window !== "undefined" && window.innerWidth <= TABLET_MAP_LAYOUT_MAX_WIDTH) {
-    return getMapDetailPanOffset(map, TABLET_DETAIL_PANEL_FRACTION);
-  }
-  return getMapDetailPanOffset(map, DESKTOP_DETAIL_PANEL_FRACTION);
 }
 
 const selectedPostPinIcon = new L.Icon({
@@ -99,7 +91,7 @@ function SelectedPostMapFocus({ post }) {
 
     const panToVisibleMapCenter = () => {
       if (cancelled) return;
-      const [dx, dy] = getMapDetailPanOffsetForViewport(map);
+      const [dx, dy] = getMapDetailPanOffset(map);
       if (dx === 0 && dy === 0) return;
       map.panBy([dx, dy], { animate: true, duration: 0.25 });
     };
