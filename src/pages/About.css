@@ -202,26 +202,6 @@
 .about-input,
 .about-textarea {
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 11px 14px;
-  font-family: "Noto Sans TC", sans-serif;
-  font-size: var(--about-body-size);
-  color: var(--ink);
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.about-input:focus,
-.about-textarea:focus {
-  border-color: #a8a8a8;
-  box-shadow: 0 0 0 3px rgba(31, 31, 33, 0.08);
-}
-
-.about-input:focus-visible,
-.about-textarea:focus-visible {
-  outline: 2px solid #2e4e9d;
-  outline-offset: 1px;
 }
 
 .about-input:disabled,
@@ -231,7 +211,6 @@
 }
 
 .about-textarea {
-  resize: vertical;
   min-height: 120px;
   line-height: 1.75;
 }

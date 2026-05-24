@@ -32,6 +32,7 @@ export function beginMatchCelebration() {
     cancel() {
       cancelled = true;
       window.clearTimeout(tConfetti);
+      confetti.reset();
     },
   };
 }

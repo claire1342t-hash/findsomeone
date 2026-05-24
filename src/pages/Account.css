@@ -90,26 +90,14 @@
 
 .account-input {
   width: 100%;
-  padding: 11px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-family: "Noto Sans TC", sans-serif;
-  font-size: 15px;
-  background: #fafafa;
-  color: var(--ink);
-}
-
-.account-input:focus {
-  outline: 2px solid #c9c9c9;
-  outline-offset: 1px;
-}
-
-.account-password-wrap {
-  position: relative;
 }
 
 .account-input--password {
   padding-right: 44px;
+}
+
+.account-password-wrap {
+  position: relative;
 }
 
 .account-password-toggle {

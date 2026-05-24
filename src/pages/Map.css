@@ -498,17 +498,6 @@
 
 .map-verify__input {
   width: 100%;
-  border: 1px solid #d7d7d7;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 14px;
-  background: #fff;
-  color: #222;
-}
-
-.map-verify__input:focus {
-  outline: 2px solid #c6c6c6;
-  outline-offset: 1px;
 }
 
 .map-verify__submit {
@@ -568,20 +557,12 @@
 }
 
 .report-modal__select {
-  border: 1px solid #d0d0d0;
-  border-radius: 9px;
-  min-height: 38px;
-  padding: 0 10px;
-  font-size: 14px;
+  width: 100%;
 }
 
 .report-modal__textarea {
-  border: 1px solid #d0d0d0;
-  border-radius: 9px;
+  width: 100%;
   min-height: 84px;
-  padding: 8px 10px;
-  font-size: 14px;
-  resize: vertical;
 }
 
 .report-modal__error {

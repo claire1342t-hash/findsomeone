@@ -168,20 +168,6 @@
 .post-textarea {
   width: 100%;
   min-height: 120px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-family: "Noto Sans TC", sans-serif;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--ink);
-  background: #fafafa;
-  resize: vertical;
-}
-
-.post-textarea:focus {
-  outline: 2px solid #c9c9c9;
-  outline-offset: 1px;
 }
 
 .post-radio-grid {
@@ -224,17 +210,6 @@
 
 .post-input {
   width: 100%;
-  padding: 11px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-family: "Noto Sans TC", sans-serif;
-  font-size: 15px;
-  background: #fafafa;
-}
-
-.post-input:focus {
-  outline: 2px solid #c9c9c9;
-  outline-offset: 1px;
 }
 
 .post-hint {

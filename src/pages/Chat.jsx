@@ -59,6 +59,7 @@ export default function ChatPage() {
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState("");
   const [reportSubmittedForChat, setReportSubmittedForChat] = useState(false);
+  const [messagesReady, setMessagesReady] = useState(false);
   const messagesBottomRef = useRef(null);
   const inputRef = useRef(null);
   const celebrationCancelRef = useRef(null);
@@ -110,9 +111,11 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!chatId || !db) return undefined;
+    setMessagesReady(false);
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"));
     return onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setMessagesReady(true);
     });
   }, [chatId, db]);
 
@@ -121,12 +124,16 @@ export default function ChatPage() {
   }, [messages, chatId]);
 
   useEffect(() => {
-    if (!user || !chat || !chatId || !senderRole || expired) return undefined;
+    if (!user || !chat || !chatId || !senderRole || expired || !messagesReady) return undefined;
 
-    if (messages.length > 0) {
-      celebrationCancelRef.current?.cancel();
-      celebrationCancelRef.current = null;
-      return undefined;
+    const storageKey = `celebrated_${chatId}`;
+    if (localStorage.getItem(storageKey)) return undefined;
+    if (messages.length > 0) return undefined;
+
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch (err) {
+      console.error("[Chat] celebration localStorage failed", err);
     }
 
     celebrationCancelRef.current?.cancel();
@@ -137,7 +144,7 @@ export default function ChatPage() {
       celebrationCancelRef.current?.cancel();
       celebrationCancelRef.current = null;
     };
-  }, [user, chat, chatId, senderRole, expired, messages.length]);
+  }, [user, chat, chatId, senderRole, expired, messagesReady, messages.length]);
 
   const sendMessage = async () => {
     if (!db || !chatId || !senderRole) return;
