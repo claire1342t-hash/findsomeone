@@ -2,8 +2,6 @@
   position: fixed;
   inset: 0;
   width: 100%;
-  height: calc(var(--map-vh, 1dvh) * 100);
-  min-height: calc(var(--map-vh, 1dvh) * 100);
   overflow: hidden;
   background: var(--bg-main);
 }
@@ -664,7 +662,7 @@
     left: 12px;
     right: max(12px, env(safe-area-inset-right, 0px));
     flex-direction: column;
-    top: calc(var(--map-vh, 1dvh) * 45);
+    top: 45dvh;
   }
 
   .map-sheet.is-split .map-sheet__right-wrap {

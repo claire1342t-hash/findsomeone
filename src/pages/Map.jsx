@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
-import { useVisualViewportHeight } from "../hooks/useVisualViewportHeight.js";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -258,15 +257,53 @@ function MapPage() {
   );
   const { ref: leftScrollRef, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
   const { ref: rightScrollRef, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
-  const syncMapViewport = useVisualViewportHeight("--map-vh");
 
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyWidth = body.style.width;
+    const prevBodyTop = body.style.top;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.width = "100%";
+    body.style.top = "0";
     return () => {
-      document.body.style.overflow = prevOverflow;
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.width = prevBodyWidth;
+      body.style.top = prevBodyTop;
     };
   }, []);
+
+  const scrollMapFieldIntoView = (element) => {
+    if (!(element instanceof HTMLElement)) return;
+    const panel = rightScrollRef.current;
+    const run = () => {
+      if (panel) {
+        const panelRect = panel.getBoundingClientRect();
+        const fieldRect = element.getBoundingClientRect();
+        const visibleBottom =
+          window.visualViewport?.height != null
+            ? window.visualViewport.offsetTop + window.visualViewport.height
+            : window.innerHeight;
+        const margin = 20;
+        if (fieldRect.bottom > visibleBottom - margin) {
+          panel.scrollTop += fieldRect.bottom - (visibleBottom - margin);
+        } else if (fieldRect.top < panelRect.top + margin) {
+          panel.scrollTop -= panelRect.top + margin - fieldRect.top;
+        }
+      } else {
+        element.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    };
+    run();
+    window.setTimeout(run, 320);
+  };
 
   const resetMobileSheetLayout = () => {
     if (document.activeElement instanceof HTMLElement) {
@@ -275,8 +312,6 @@ function MapPage() {
     window.scrollTo(0, 0);
     leftScrollRef.current?.scrollTo(0, 0);
     rightScrollRef.current?.scrollTo(0, 0);
-    syncMapViewport();
-    window.setTimeout(syncMapViewport, 120);
   };
   useEffect(() => {
     if (!verifyOpen) return undefined;
@@ -659,6 +694,7 @@ function MapPage() {
                           className="map-verify__input"
                           value={answer1}
                           onChange={(e) => setAnswer1(e.target.value)}
+                          onFocus={(e) => scrollMapFieldIntoView(e.currentTarget)}
                         />
                       </label>
                       <label className="map-verify__label">
@@ -668,6 +704,7 @@ function MapPage() {
                           className="map-verify__input"
                           value={answer2}
                           onChange={(e) => setAnswer2(e.target.value)}
+                          onFocus={(e) => scrollMapFieldIntoView(e.currentTarget)}
                         />
                       </label>
                       {verifyError ? <p className="map-verify__message map-verify__message--error">{verifyError}</p> : null}
