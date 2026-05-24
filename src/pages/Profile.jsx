@@ -454,7 +454,6 @@ function Profile() {
         reviewedAt: serverTimestamp(),
       });
       await sendProfileNotificationEmail("posterAcceptedResponse", postId, responseUserId);
-      beginMatchCelebration();
       navigate(`/chat/${chatRef.id}`);
     } catch (err) {
       console.error(err);

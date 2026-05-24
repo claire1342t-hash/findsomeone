@@ -22,25 +22,15 @@ const TERMS_SECTION_IDS = [
 const MECHANISM_FEATURE_IDS = [
   "avatar",
   "view-replies",
-  "match",
   "anon-nickname",
   "delete-post",
-  "report",
-  "post-expiry",
-  "chat-expiry",
-  "end-chat",
 ];
 
 const FEATURE_ICONS = {
   avatar: "🎨",
   "view-replies": "👀",
-  match: "🎉",
   "anon-nickname": "🎭",
   "delete-post": "🗑️",
-  report: "🚨",
-  "post-expiry": "⏰",
-  "chat-expiry": "💬",
-  "end-chat": "🚪",
 };
 
 function About() {
@@ -125,22 +115,7 @@ function About() {
           <p className="about-lead">{t("about.privacy.lead2")}</p>
           <p className="about-lead">{t("about.privacy.lead3")}</p>
           <p className="about-lead">{t("about.privacy.lead4")}</p>
-          <p className="about-lead">{t("about.privacy.lead5")}</p>
           <p className="about-lead">{t("about.privacy.lead6")}</p>
-        </section>
-
-        <section className="about-section about-terms" aria-labelledby="about-terms-title">
-          <h2 id="about-terms-title" className="about-section-title about-anchor-target">
-            {t("about.terms.title")}
-          </h2>
-          <p className="about-lead about-terms-intro">{t("about.terms.intro")}</p>
-          {TERMS_SECTION_IDS.map((id) => (
-            <p className="about-lead about-terms-item" key={id}>
-              <span className="about-terms-subtitle">{t(`about.terms.${id}.title`)}</span>{" "}
-              {t(`about.terms.${id}.body`)}
-            </p>
-          ))}
-          <p className="about-lead about-terms-footer">{t("about.terms.footer")}</p>
         </section>
 
         <section className="about-section" aria-labelledby="about-mechanism-title">
@@ -158,6 +133,20 @@ function About() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="about-section about-terms" aria-labelledby="about-terms-title">
+          <h2 id="about-terms-title" className="about-section-title about-anchor-target">
+            {t("about.terms.title")}
+          </h2>
+          <p className="about-lead about-terms-intro">{t("about.terms.intro")}</p>
+          {TERMS_SECTION_IDS.map((id) => (
+            <p className="about-lead about-terms-item" key={id}>
+              <span className="about-terms-subtitle">{t(`about.terms.${id}.title`)}</span>{" "}
+              {t(`about.terms.${id}.body`)}
+            </p>
+          ))}
+          <p className="about-lead about-terms-footer">{t("about.terms.footer")}</p>
         </section>
 
         <section className="about-section" aria-labelledby="about-author-title">

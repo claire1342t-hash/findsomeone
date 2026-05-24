@@ -121,16 +121,12 @@ export default function ChatPage() {
   }, [messages, chatId]);
 
   useEffect(() => {
-    if (!user || !chat || !chatId) return undefined;
-    if (user.uid !== chat.responderUid) return undefined;
+    if (!user || !chat || !chatId || !senderRole || expired) return undefined;
 
-    const storageKey = `celebrated_${chatId}`;
-    if (localStorage.getItem(storageKey)) return undefined;
-
-    try {
-      localStorage.setItem(storageKey, "true");
-    } catch (err) {
-      console.error("[Chat] celebration localStorage failed", err);
+    if (messages.length > 0) {
+      celebrationCancelRef.current?.cancel();
+      celebrationCancelRef.current = null;
+      return undefined;
     }
 
     celebrationCancelRef.current?.cancel();
@@ -141,7 +137,7 @@ export default function ChatPage() {
       celebrationCancelRef.current?.cancel();
       celebrationCancelRef.current = null;
     };
-  }, [user, chat, chatId]);
+  }, [user, chat, chatId, senderRole, expired, messages.length]);
 
   const sendMessage = async () => {
     if (!db || !chatId || !senderRole) return;

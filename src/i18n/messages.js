@@ -37,7 +37,8 @@ export const messages = {
     "feature.sub.title": "3. 等待他人回覆",
     "feature.sub.desc": "貼文上線後，有人回應時我們會寄信通知你",
     "feature.chat.title": "4. 驗證身份，開始匿名聊天",
-    "feature.chat.desc": "由你來判斷答案是否正確。確認後匿名聊天室開啟",
+    "feature.chat.desc":
+      "由你來判斷答案是否正確。確認後匿名聊天室開啟（貼文與聊天室7天後會自動刪除並無法復原）",
     "post.title": "發布尋找",
     "post.loc.heading": "選擇地點",
     "post.loc.intro": "在地圖上點一下，標記你看到對方的位置。",
@@ -242,8 +243,6 @@ export const messages = {
       "您的 email 地址僅用於系統通知，不會顯示給其他用戶，除非您主動選擇透露。我們不會將您的個人資料提供給第三方。",
     "about.privacy.lead4":
       "貼文自發布起保存 7 日，到期後自地圖下架；您也可在個人頁面主動刪除貼文（進行中的聊天室會保留）。聊天室在雙方使用「結束聊天」後會立即刪除所有訊息；若未提前結束，開啟後 7 日也會刪除。我們不備份貼文與聊天內容，刪除後無法復原。",
-    "about.privacy.lead5":
-      "本站使用 Vercel Web Analytics 收集匿名造訪統計（例如瀏覽的頁面、裝置類型），不包含聊天內容、貼文內文或您的 email。詳情可參考 Vercel 的隱私說明。",
     "about.privacy.lead6":
       "若您透過檢舉功能回報貼文或聊天室，我們會保存檢舉原因與相關識別資訊供管理員審核，處理完成後僅管理員可更新狀態。",
     "about.terms.title": "使用條款",
@@ -418,7 +417,7 @@ export const messages = {
     "feature.sub.desc": "Once your post is live, we'll email you when someone responds",
     "feature.chat.title": "4. Verify identity, then chat anonymously",
     "feature.chat.desc":
-      "You decide if their answers are correct. After you confirm, an anonymous chat room opens",
+      "You decide if their answers are correct. After you confirm, an anonymous chat room opens (posts and chat rooms are automatically deleted after 7 days and cannot be recovered).",
     "post.title": "Post a search",
     "post.loc.heading": "Location",
     "post.loc.intro": "Tap the map to drop a pin where you saw them.",
@@ -626,8 +625,6 @@ export const messages = {
       "Your email is used only for system notifications. It is not shown to other users unless you choose to share it. We do not provide your personal data to third parties.",
     "about.privacy.lead4":
       "Posts stay available for 7 days after publishing, then leave the map; you can also delete a post from your profile (active chat rooms are kept). Messages are deleted immediately when either person uses “End chat”; otherwise the room is removed 7 days after it opens. We do not back up posts or chats—deletion is permanent.",
-    "about.privacy.lead5":
-      "We use Vercel Web Analytics for anonymous visit statistics (e.g. pages viewed, device type). It does not include chat text, post content, or your email. See Vercel’s privacy documentation for details.",
     "about.privacy.lead6":
       "If you report a post or chat, we store the reason and related identifiers for admin review. Only admins can update report status after review.",
     "about.terms.title": "Terms of use",
@@ -803,7 +800,8 @@ export const messages = {
     "feature.sub.title": "3. 返信を待つ",
     "feature.sub.desc": "投稿が公開されると、誰かが返信したときメールでお知らせします",
     "feature.chat.title": "4. 本人確認後、匿名チャット",
-    "feature.chat.desc": "回答が正しいかあなたが判断。確認後に匿名チャットルームが開きます",
+    "feature.chat.desc":
+      "回答が正しいかあなたが判断。確認後に匿名チャットルームが開きます（投稿とチャットルームは7日後に自動削除され、復元できません）",
     "post.title": "探し人を投稿",
     "post.loc.heading": "場所を選ぶ",
     "post.loc.intro": "地図をタップして、相手を見た位置にピンを立ててください。",
@@ -1012,8 +1010,6 @@ export const messages = {
       "email アドレスはシステム通知のみに使用し、他のユーザーには表示されません（ご自身で開示する場合を除く）。個人データを第三者に提供することはありません。",
     "about.privacy.lead4":
       "投稿は公開から7日間表示され、その後地図から外れます。プロフィールから投稿を削除することもできます（進行中のチャットルームは残ります）。「チャットを終了」するとメッセージはすぐ削除され、終了しない場合は開始から7日後に削除されます。投稿とチャットのバックアップは行わず、削除後は復元できません。",
-    "about.privacy.lead5":
-      "当サイトは Vercel Web Analytics により匿名の訪問統計（閲覧ページ、端末種別など）を収集します。チャット内容・投稿本文・email は含まれません。詳細は Vercel のプライバシー説明をご覧ください。",
     "about.privacy.lead6":
       "投稿やチャットを通報した場合、管理者が審査するため理由と関連情報を保存します。処理後の状態更新は管理者のみが行えます。",
     "about.terms.title": "利用規約",

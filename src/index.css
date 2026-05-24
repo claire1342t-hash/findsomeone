@@ -412,12 +412,6 @@ select:focus-visible {
   .app-footer__copy {
     font-size: max(13px, 0.8125rem);
   }
-
-  input,
-  textarea,
-  select {
-    font-size: max(16px, 1rem);
-  }
 }
 
 .route-fallback {
