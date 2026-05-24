@@ -3,8 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
+import { RouteFallback } from "../components/RouteFallback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
+import { useRestorePageScroll } from "../hooks/useRestorePageScroll.js";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
 import { getChatExpiryBadge } from "../utils/postLifecycle.js";
 import "./ChatList.css";
@@ -16,6 +18,7 @@ export default function ChatListPage() {
   const navigate = useNavigate();
   const [posterChats, setPosterChats] = useState([]);
   const [responderChats, setResponderChats] = useState([]);
+  useRestorePageScroll();
 
   useEffect(() => {
     if (loading || !db) return undefined;
@@ -49,7 +52,14 @@ export default function ChatListPage() {
     });
   }, [posterChats, responderChats]);
 
-  if (loading || !user) return null;
+  if (loading || !user) {
+    return (
+      <div className="chat-list-page">
+        <SiteHeader />
+        <RouteFallback />
+      </div>
+    );
+  }
 
   return (
     <div className="chat-list-page">

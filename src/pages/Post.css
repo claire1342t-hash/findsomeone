@@ -227,6 +227,7 @@
 
 .post-submit {
   border: 0;
+  margin-top: 20px;
   border-radius: 999px;
   padding: 14px 36px;
   font-size: 16px;

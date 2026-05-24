@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { getDb, getFirebaseAuth } from "../lib/firebaseApp.js";
 import { deferUntilIdle } from "../lib/deferUntilIdle.js";
@@ -28,6 +28,7 @@ async function syncUserDocument(user) {
 
 export function AuthProvider({ children }) {
   const { pathname } = useLocation();
+  const initialPathRef = useRef(pathname);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authProfileEpoch, setAuthProfileEpoch] = useState(0);
@@ -64,7 +65,7 @@ export function AuthProvider({ children }) {
       })();
     };
 
-    const cancelSchedule = IDLE_AUTH_PATHS.has(pathname)
+    const cancelSchedule = IDLE_AUTH_PATHS.has(initialPathRef.current)
       ? deferUntilIdle(startAuth)
       : (startAuth(), () => {});
 
@@ -73,7 +74,7 @@ export function AuthProvider({ children }) {
       cancelSchedule();
       unsubscribe();
     };
-  }, [pathname]);
+  }, []);
 
   const signOut = useCallback(async () => {
     const auth = await getFirebaseAuth();

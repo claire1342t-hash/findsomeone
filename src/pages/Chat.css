@@ -1,5 +1,6 @@
 .chat-page {
   min-height: 100vh;
+  background: var(--bg-main);
 }
 
 .chat-main {
@@ -155,21 +156,28 @@
   border-top: 1px solid var(--line);
   padding: 10px;
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .chat-input-row input {
   flex: 1;
+  min-width: 0;
 }
 
 .chat-input-row button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   border: 0;
   background: transparent;
   color: #1f1f21;
   font-size: 20px;
   line-height: 1;
-  padding: 0 6px;
-  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 

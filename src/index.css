@@ -375,6 +375,16 @@ textarea {
   padding: 8px 0 4px;
 }
 
+.home-page .home-post-cta {
+  margin-top: 24px;
+  margin-bottom: 1px;
+}
+
+.home-page .app-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
 @media (max-width: 730px) {
   .top-nav {
     grid-template-columns: 1fr;

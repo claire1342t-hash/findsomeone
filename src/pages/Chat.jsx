@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { useDb } from "../hooks/useDb.js";
 import { SiteHeader } from "../components/SiteHeader.jsx";
+import { RouteFallback } from "../components/RouteFallback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../context/LanguageContext.jsx";
 import { formatRelativeSmart } from "../utils/relativeTime.js";
@@ -21,6 +22,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { deleteChatCascade } from "../utils/postLifecycle.js";
 import { ensureUserNotBanned } from "../utils/userBan.js";
 import { beginMatchCelebration } from "../utils/matchCelebration.js";
+import { useRestorePageScroll } from "../hooks/useRestorePageScroll.js";
 import {
   DEFAULT_REPORT_REASON,
   isOtherReportReason,
@@ -63,6 +65,7 @@ export default function ChatPage() {
   const messagesBottomRef = useRef(null);
   const inputRef = useRef(null);
   const celebrationCancelRef = useRef(null);
+  useRestorePageScroll();
 
   const senderRole = useMemo(() => {
     if (!user || !chat) return null;
@@ -256,7 +259,14 @@ export default function ChatPage() {
     }
   };
 
-  if (loading || !user) return null;
+  if (loading || !user) {
+    return (
+      <div className="chat-page">
+        <SiteHeader />
+        <RouteFallback />
+      </div>
+    );
+  }
 
   return (
     <div className="chat-page">

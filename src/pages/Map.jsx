@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBottomScrollFade } from "../hooks/useBottomScrollFade.js";
+import { useVisualViewportHeight } from "../hooks/useVisualViewportHeight.js";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -112,10 +113,12 @@ function SelectedPostMapFocus({ post }) {
 
     const onResize = () => focus(false);
     window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
     return () => {
       cancelled = true;
       map.off("moveend", panToVisibleMapCenter);
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
     };
   }, [map, lat, lng, postId]);
 
@@ -255,6 +258,26 @@ function MapPage() {
   );
   const { ref: leftScrollRef, showFade: leftShowFade } = useBottomScrollFade(leftScrollKey);
   const { ref: rightScrollRef, showFade: rightShowFade } = useBottomScrollFade(rightScrollKey);
+  const syncMapViewport = useVisualViewportHeight("--map-vh");
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  const resetMobileSheetLayout = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    window.scrollTo(0, 0);
+    leftScrollRef.current?.scrollTo(0, 0);
+    rightScrollRef.current?.scrollTo(0, 0);
+    syncMapViewport();
+    window.setTimeout(syncMapViewport, 120);
+  };
   useEffect(() => {
     if (!verifyOpen) return undefined;
     const panel = rightScrollRef.current;
@@ -310,6 +333,7 @@ function MapPage() {
   };
 
   const closePanel = () => {
+    resetMobileSheetLayout();
     setClusterPosts([]);
     setSelectedPostId(null);
     resetVerificationState();
@@ -317,6 +341,7 @@ function MapPage() {
   };
 
   const goBackToList = () => {
+    resetMobileSheetLayout();
     setSelectedPostId(null);
     resetVerificationState();
     resetReportState();

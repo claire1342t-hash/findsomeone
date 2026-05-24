@@ -1,5 +1,6 @@
 .chat-list-page {
   min-height: 100vh;
+  background: var(--bg-main);
 }
 
 .chat-list-main {
